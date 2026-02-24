@@ -262,12 +262,6 @@ export default function Home() {
       </p>
     </div>
 
-    {/* DONE */}
-    <div className="text-center">
-      <p className="text-xs tracking-widest text-cyan-400">DONE</p>
-      <p className="text-2xl font-bold">{current}</p>
-    </div>
-
 </div>
       <img
         src={`/images/q${questions[current].id}.png`}
