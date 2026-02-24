@@ -77,7 +77,7 @@ export default function Home() {
   }
 
   function handleAnswer(index: number) {
-    if (selectedIndex !== null) return;
+    if (selectedIndex !== null) return; // 防止连点
   
     const isCorrect = index === questions[current].correct;
   
@@ -293,12 +293,19 @@ export default function Home() {
               className={`w-24 h-24 object-contain transition
                 ${
                   selectedIndex === index
-                    ? isCorrectSelection
-                      ? "ring-4 ring-cyan-400 scale-110"
-                      : "ring-4 ring-red-500 scale-110"
+                    ? "ring-4 ring-cyan-400 scale-110"
                     : "cursor-pointer hover:scale-105"
                 }`}
             />
+      
+            {/* 如果选错，显示红叉 */}
+            {selectedIndex === index && isCorrectSelection === false && (
+              <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center rounded">
+                <span className="text-red-600 text-7xl font-bold drop-shadow-lg">
+                  ✕
+                </span>
+              </div>
+            )}
           </div>
         ))}
       </div>
