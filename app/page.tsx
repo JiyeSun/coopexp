@@ -24,6 +24,8 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [totalTime, setTotalTime] = useState<number>(0);
   const [experimentStartTime, setExperimentStartTime] = useState<number | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [isCorrectSelection, setIsCorrectSelection] = useState<boolean | null>(null);
   const [started, setStarted] = useState<boolean>(false);
   const [showChat, setShowChat] = useState<boolean>(false);
   const [messages, setMessages] = useState<
@@ -39,8 +41,6 @@ export default function Home() {
       setTotalTime(Math.floor((Date.now() - experimentStartTime) / 1000));
     }
   }, 1000);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [showWrongMark, setShowWrongMark] = useState<boolean>(false);
 
   return () => clearInterval(interval);
 }, [started, experimentStartTime, current]);
@@ -77,21 +77,20 @@ export default function Home() {
   }
 
   function handleAnswer(index: number) {
-    if (autoAnswered) return;
-  
-    setSelectedIndex(index);
+    if (selectedIndex !== null) return;
   
     const isCorrect = index === questions[current].correct;
   
+    setSelectedIndex(index);
+    setIsCorrectSelection(isCorrect);
+  
     if (isCorrect) {
       setScore(prev => prev + 1);
-    } else {
-      setShowWrongMark(true);
     }
   
     setTimeout(() => {
       setSelectedIndex(null);
-      setShowWrongMark(false);
+      setIsCorrectSelection(null);
       setCurrent(prev => prev + 1);
     }, 1500);
   }
@@ -287,27 +286,20 @@ export default function Home() {
       <div className="grid grid-cols-6 gap-6">
         {generateOptions(questions[current].id).map((option, index) => (
           <div key={index} className="relative">
-          <img
-            src={option}
-            alt="option"
-            onClick={() => handleAnswer(index)}
-            className={`w-24 h-24 object-contain transition
-              ${autoAnswered && index === questions[current].correct
-                ? "ring-4 ring-red-500 scale-110"
-                : ""}
-              ${selectedIndex === index
-                ? "ring-4 ring-cyan-400 scale-110"
-                : "cursor-pointer hover:scale-105"
-              }`}
-          />
-        
-          {/* 错误时显示红叉 */}
-          {showWrongMark && selectedIndex === index && (
-            <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center rounded">
-              <span className="text-red-600 text-7xl font-bold">✕</span>
-            </div>
-          )}
-        </div>
+            <img
+              src={option}
+              alt="option"
+              onClick={() => handleAnswer(index)}
+              className={`w-24 h-24 object-contain transition
+                ${
+                  selectedIndex === index
+                    ? isCorrectSelection
+                      ? "ring-4 ring-cyan-400 scale-110"
+                      : "ring-4 ring-red-500 scale-110"
+                    : "cursor-pointer hover:scale-105"
+                }`}
+            />
+          </div>
         ))}
       </div>
       {/* Chat button */}
