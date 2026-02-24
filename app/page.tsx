@@ -39,6 +39,8 @@ export default function Home() {
       setTotalTime(Math.floor((Date.now() - experimentStartTime) / 1000));
     }
   }, 1000);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [showWrongMark, setShowWrongMark] = useState<boolean>(false);
 
   return () => clearInterval(interval);
 }, [started, experimentStartTime, current]);
@@ -75,10 +77,23 @@ export default function Home() {
   }
 
   function handleAnswer(index: number) {
-    if (index === questions[current].correct) {
-      setScore(score + 1);
+    if (autoAnswered) return;
+  
+    setSelectedIndex(index);
+  
+    const isCorrect = index === questions[current].correct;
+  
+    if (isCorrect) {
+      setScore(prev => prev + 1);
+    } else {
+      setShowWrongMark(true);
     }
-    setCurrent(current + 1);
+  
+    setTimeout(() => {
+      setSelectedIndex(null);
+      setShowWrongMark(false);
+      setCurrent(prev => prev + 1);
+    }, 1500);
   }
 
   function sendMessage() {
@@ -271,13 +286,28 @@ export default function Home() {
 
       <div className="grid grid-cols-6 gap-6">
         {generateOptions(questions[current].id).map((option, index) => (
+          <div key={index} className="relative">
           <img
-            key={index}
             src={option}
             alt="option"
             onClick={() => handleAnswer(index)}
-            className="w-24 h-24 object-contain cursor-pointer hover:scale-105 transition"
+            className={`w-24 h-24 object-contain transition
+              ${autoAnswered && index === questions[current].correct
+                ? "ring-4 ring-red-500 scale-110"
+                : ""}
+              ${selectedIndex === index
+                ? "ring-4 ring-cyan-400 scale-110"
+                : "cursor-pointer hover:scale-105"
+              }`}
           />
+        
+          {/* 错误时显示红叉 */}
+          {showWrongMark && selectedIndex === index && (
+            <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center rounded">
+              <span className="text-red-600 text-7xl font-bold">✕</span>
+            </div>
+          )}
+        </div>
         ))}
       </div>
       {/* Chat button */}
