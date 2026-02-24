@@ -243,7 +243,7 @@ export default function Home() {
     {/* WRONG */}
     <div className="text-center">
       <p className="text-xs tracking-widest text-cyan-400">WRONG</p>
-      <p className="text-2xl font-bold text-red-400">{current-score}</p>
+      <p className="text-2xl font-bold text-red-400">{Math.max(0, current - score)}</p>
     </div>
 
     {/* SCORE */}
