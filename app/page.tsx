@@ -146,14 +146,15 @@ export default function Home() {
           {/* System Label */}
           {/* Title */}
           <h1 className="text-2xl md:text-2xl font-semibold mb-6 leading-relaxed max-w-2xl mx-auto">
-            This is a performance test, try to complete as many matrices as possible in the shortest time. 
+            This is a 14-question reasoning test, try to complete as many matrices as possible in the shortest time. 
             Your performance will be compared to the other participants.
           </h1>
 
           {/* Description */}
           <p className="text-gray-300 leading-relaxed mb-8 text-lg max-w-xl mx-auto">
             You can click the <span className="text-cyan-400 font-medium">ASSISTANT </span> 
-            button to ask the bot about any question you are stuck on. Click the button below to begin.
+            button to ask the bot about any question you are stuck on. 
+            Click the button below to begin.
           </p>
 
           {/* Begin Button */}
