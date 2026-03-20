@@ -449,11 +449,6 @@ export default function Home() {
                 ? "bg-black text-white"
                 : "bg-white text-black"
             }`}
-            className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm ${
-              msg.sender === "user"
-                ? "bg-black text-white"
-                : "bg-white text-black"
-            }`}
           >
             {msg.text}
           </div>
