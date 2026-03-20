@@ -28,6 +28,8 @@ export default function Home() {
   const [isCorrectSelection, setIsCorrectSelection] = useState<boolean | null>(null);
   const [started, setStarted] = useState<boolean>(false);
   const [showChat, setShowChat] = useState<boolean>(false);
+  const [showCover, setShowCover] = useState(true);
+  const [showStartButton, setShowStartButton] = useState(false);
   const [messages, setMessages] = useState<
     { sender: string; text: string }[]
   >([]);
@@ -127,7 +129,39 @@ export default function Home() {
 
   return "Please type: Help me on question X 😊";
 }
-
+  if (showCover) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-center">
+  
+          <h1 className="text-4xl font-bold mb-4">
+            Pattern Reasoning Challenge
+          </h1>
+  
+          <p className="text-gray-400 mb-8">
+            Solve problems with AI support.
+          </p>
+  
+          <button
+            onClick={() => {
+              setShowCover(false);
+  
+              setShowStartButton(false);
+  
+              setTimeout(() => {
+                setShowStartButton(true);
+              }, 2000);
+            }}
+            className="px-10 py-4 border border-cyan-400 text-cyan-400 rounded-2xl
+            hover:bg-cyan-400 hover:text-black transition"
+          >
+            BEGIN
+          </button>
+  
+        </div>
+      </div>
+    );
+  }
   if (!started) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center px-6">
@@ -145,44 +179,65 @@ export default function Home() {
 
           {/* System Label */}
           {/* Title */}
-          <h1 className="text-2xl md:text-2xl font-semibold mb-6 leading-relaxed max-w-2xl mx-auto">
-            This is a 14-question reasoning test, try to complete as many matrices as possible in the shortest time. 
-            Your performance will be compared to the other participants.
-          </h1>
-
-          {/* Description */}
-          <p className="text-gray-300 leading-relaxed mb-8 text-lg max-w-xl mx-auto">
-            You can click the <span className="text-cyan-400 font-medium">ASSISTANT </span> 
-            button to ask the bot about any question you are stuck on. 
-            Click the button below to begin.
+          <div className="text-center">
+          {/* 标题 */}
+          <div className="text-4xl font-bold mb-4">
+            <p>14 Matrix Questions.</p>
+            <p>Solve with AI Assistance.</p>
+          </div>
+        
+          {/* 规则 */}
+          <div className="mt-6 space-y-2 text-lg text-gray-300">
+            <p>⏱ 30 seconds per question</p>
+            <p>🧠 Solve as many as you can</p>
+          </div>
+        
+          {/* assistant说明（重点保留） */}
+          <div className="mt-6 text-gray-400 text-sm">
+            <p>
+              Stuck on a question? Use the <span className="text-cyan-400">ASSISTANT</span> for help.
+            </p>
+          </div>
+        
+          {/* 结尾 */}
+          <p className="mt-6 text-cyan-400 text-xl font-semibold">
+            Are you ready?
           </p>
-
-          {/* Begin Button */}
-          <button
-            onClick={() => {
-              setStarted(true);
-              setExperimentStartTime(Date.now());
-            }}
-            className="
-              px-10 py-4
-              bg-black/80 backdrop-blur-md
-              text-cyan-400
-              rounded-2xl
-              border border-cyan-400
-              shadow-[0_0_20px_rgba(0,255,255,0.3)]
-              tracking-widest
-              text-lg
-              hover:bg-cyan-400 hover:text-black
-              hover:shadow-[0_0_25px_rgba(0,255,255,0.8)]
-              hover:scale-105 active:scale-95
-              transition-all duration-300
-            "
-          >
-            BEGIN
-          </button>
-
+        
         </div>
 
+          {/* Begin Button */}
+          <div className="flex flex-col items-center mt-6">
+          {!showStartButton && (
+            <p className="text-gray-500 animate-pulse mb-4">
+              Preparing challenge...
+            </p>
+          )}
+          {showStartButton && (
+            <button
+              onClick={() => {
+                setStarted(true);
+                setExperimentStartTime(Date.now());
+              }}
+              className="
+                px-10 py-4
+                bg-black/80 backdrop-blur-md
+                text-cyan-400
+                rounded-2xl
+                border border-cyan-400
+                shadow-[0_0_20px_rgba(0,255,255,0.3)]
+                tracking-widest
+                text-lg
+                hover:bg-cyan-400 hover:text-black
+                transition-all duration-300
+              "
+            >
+              READY!
+            </button>
+          )}
+        
+        </div>
+        </div>
       </div>
     );
   }
@@ -298,7 +353,15 @@ export default function Home() {
                     : "cursor-pointer hover:scale-105"
                 }`}
             />
-      
+            {/* ✅ 正确 */}
+            {selectedIndex === index && isCorrectSelection === true && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-green-500 text-6xl font-bold drop-shadow-lg">
+                  ✓
+                </span>
+              </div>
+            )}
+                
             {/* 如果选错，显示红叉 */}
             {selectedIndex === index && isCorrectSelection === false && (
               <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center rounded">
