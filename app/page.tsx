@@ -112,23 +112,23 @@ export default function Home() {
   }
 
   function generateReply(message: string) {
-  const lower = message.toLowerCase();
-  const match = lower.match(/question\s*(\d+)/);
-
-  if (lower.includes("help") && match) {
-    const questionNumber = parseInt(match[1], 10);
-
-    const question = questions.find(q => q.id === questionNumber);
-
-    if (!question) {
-      return "I couldn't find that question number.";
+    const match = message.match(/\d+/); // 只要有数字就抓
+  
+    if (match) {
+      const questionNumber = parseInt(match[0], 10);
+  
+      const question = questions.find(q => q.id === questionNumber);
+  
+      if (!question) {
+        return "I couldn't find that question number.";
+      }
+  
+      const letter = String.fromCharCode(65 + question.correct);
+      return `The correct answer for question ${questionNumber} is option ${letter}.`;
     }
-    const letter = String.fromCharCode(65 + question.correct);
-    return `The correct answer for question ${questionNumber} is option ${letter}.`;
+  
+    return "Type a question number (e.g., 1 or q1) to get help.";
   }
-
-  return "Please type: Help me on question X 😊";
-}
   if (showCover) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -446,8 +446,13 @@ export default function Home() {
           <div
             className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm ${
               msg.sender === "user"
-                ? "bg-gray-900 text-white"
-                : "bg-gray-100 text-gray-800"
+                ? "bg-black text-white"
+                : "bg-white text-black"
+            }`}
+            className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm ${
+              msg.sender === "user"
+                ? "bg-black text-white"
+                : "bg-white text-black"
             }`}
           >
             {msg.text}
