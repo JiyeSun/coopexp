@@ -140,7 +140,7 @@ export default function Home() {
   
           <span className="text-cyan-400 text-xl">
             Solve problems with AI support.
-          </p>
+          </span>
   
           <button
             onClick={() => {
