@@ -138,7 +138,7 @@ export default function Home() {
             Pattern Reasoning Challenge
           </h1>
   
-          <p className="text-gray-400 mb-8">
+          <span className="text-cyan-400 text-xl">
             Solve problems with AI support.
           </p>
   
