@@ -137,7 +137,7 @@ export default function Home() {
           <h1 className="text-4xl font-bold mb-8">
             Pattern Reasoning Challenge
             <br />
-            <span className="text-cyan-400 text-xl font-xl">
+            <span className="text-cyan-400 text-xl font-xl font-bold">
               Solve problems with AI support
             </span>
           </h1>
