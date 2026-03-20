@@ -187,13 +187,13 @@ export default function Home() {
           </div>
         
           {/* 规则 */}
-          <div className="mt-6 space-y-2 text-lg text-gray-300">
+          <div className="mt-6 space-y-2 text-lg text-white">
             <p>⏱ 30 seconds per question</p>
             <p>🧠 Solve as many as you can</p>
           </div>
         
           {/* assistant说明（重点保留） */}
-          <div className="mt-6 text-gray-400 text-sm">
+          <div className="mt-6 text-white text-sm">
             <p>
               Stuck on a question? Use the <span className="text-cyan-400">ASSISTANT</span> for help.
             </p>
