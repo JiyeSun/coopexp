@@ -138,9 +138,9 @@ export default function Home() {
             Pattern Reasoning Challenge
           </h1>
   
-          <span className="text-cyan-400 text-xl">
+          <p className="text-cyan-400 text-xl">
             Solve problems with AI support.
-          </span>
+          </p>
   
           <button
             onClick={() => {
