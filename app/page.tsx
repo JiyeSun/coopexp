@@ -182,7 +182,7 @@ export default function Home() {
           <div className="text-center">
           {/* 标题 */}
           <div className="text-4xl font-bold mb-4">
-            <p>14 Matrix Questions.</p>
+            <p>14 Matrix Problems.</p>
             <p>Solve with AI Assistance.</p>
           </div>
         
