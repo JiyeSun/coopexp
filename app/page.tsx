@@ -201,7 +201,6 @@ export default function Home() {
         
           {/* 结尾 */}
           <p className="mt-6 text-cyan-400 text-xl font-semibold">
-            Are you ready?
           </p>
         
         </div>
