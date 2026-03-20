@@ -134,14 +134,14 @@ export default function Home() {
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-center">
   
-          <h1 className="text-4xl font-bold mb-4">
+          <h1 className="text-4xl font-bold mb-8">
             Pattern Reasoning Challenge
+            <br />
+            <span className="text-cyan-400 text-xl font-medium">
+              Solve problems with AI support
+            </span>
           </h1>
-  
-          <p className="text-cyan-400 text-xl">
-            Solve problems with AI support.
-          </p>
-  
+          
           <button
             onClick={() => {
               setShowCover(false);
