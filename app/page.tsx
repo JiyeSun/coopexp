@@ -409,7 +409,7 @@ export default function Home() {
     {/* Header */}
     <div className="px-6 py-4 border-b flex justify-between items-center">
       <div>
-        <p className="text-xs tracking-widest text-gray-400">
+        <p className="text-xs tracking-widest text-black">
           ASSISTANT
         </p>
       </div>
@@ -447,7 +447,7 @@ export default function Home() {
             className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm ${
               msg.sender === "user"
                 ? "bg-black text-white"
-                : "bg-white text-black"
+                : "bg-white text-black border border-black"
             }`}
           >
             {msg.text}
