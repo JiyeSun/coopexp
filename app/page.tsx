@@ -18,6 +18,8 @@ const questions = [
   { id: 14, correct: 1 },
 ];
 
+const triggerQuestions = [2, 6, 11]; // 第3、7、12题，index 从 0 开始
+
 type Message = { sender: string; text: string };
 
 type TimerHandle = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval> | null;
@@ -41,6 +43,7 @@ export default function Home() {
   const advanceRef = useRef<TimerHandle>(null);
   const feedbackRef = useRef<TimerHandle>(null);
   const questionLockedRef = useRef(false);
+  const triggeredPromptRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     if (!started || current >= questions.length) return;
@@ -52,6 +55,20 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, [started, experimentStartTime, current]);
+
+  useEffect(() => {
+    if (!started) return;
+    if (current >= questions.length) return;
+
+    if (triggerQuestions.includes(current) && !triggeredPromptRef.current.has(current)) {
+      triggeredPromptRef.current.add(current);
+
+      if (!showChat) {
+        setShowChat(true);
+        setMessages((prev) => [...prev, { sender: "bot", text: "Would you like any help?" }]);
+      }
+    }
+  }, [current, started, showChat]);
 
   useEffect(() => {
     if (!started) return;
@@ -150,17 +167,6 @@ export default function Home() {
     goNextQuestion(1500);
   }
 
-  function sendMessage() {
-    const text = input.trim();
-    if (!text) return;
-
-    const userMessage: Message = { sender: "user", text };
-    const botReply: Message = { sender: "bot", text: generateReply(text) };
-
-    setMessages((prev) => [...prev, userMessage, botReply]);
-    setInput("");
-  }
-
   function generateReply(message: string) {
     const match = message.match(/\d+/);
 
@@ -175,6 +181,17 @@ export default function Home() {
     }
 
     return "Type a question number (e.g., 1 or q1) to get help.";
+  }
+
+  function sendMessage() {
+    const text = input.trim();
+    if (!text) return;
+
+    const userMessage: Message = { sender: "user", text };
+    const botReply: Message = { sender: "bot", text: generateReply(text) };
+
+    setMessages((prev) => [...prev, userMessage, botReply]);
+    setInput("");
   }
 
   if (showCover) {
@@ -223,6 +240,7 @@ export default function Home() {
             {showStartButton && (
               <button
                 onClick={() => {
+                  triggeredPromptRef.current = new Set();
                   setStarted(true);
                   setExperimentStartTime(Date.now());
                 }}
