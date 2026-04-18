@@ -136,10 +136,6 @@ export default function Home() {
   
           <h1 className="text-4xl font-bold mb-8">
             Pattern Reasoning Challenge
-            <br />
-            <span className="text-cyan-400 text-xl font-xl font-bold">
-              Solve problems with AI support
-            </span>
           </h1>
           
           <button
@@ -182,23 +178,16 @@ export default function Home() {
           <div className="text-center">
           {/* 标题 */}
           <div className="text-4xl font-bold mb-4">
-            <p>14 Matrix Problems.</p>
-            <p>Solve with AI Assistance.</p>
+            <p>RULES</p>
           </div>
         
           {/* 规则 */}
           <div className="mt-6 space-y-2 text-lg text-white">
-            <p>⏱ 30 seconds per question</p>
-            <p>🧠 Solve as many as you can</p>
-          </div>
-        
-          {/* assistant说明（重点保留） */}
-          <div className="mt-6 text-white text-sm">
-            <p>
-              Stuck on a question? Use the <span className="text-cyan-400">ASSISTANT</span> for help.
-            </p>
-          </div>
-        
+            <p>There will be 14 matrix reasoning problems. You will have 30 seconds for each question. Each correct answer is worth 1 point.</p>
+            <p>The upper left corner shows the question number. The upper right corner shows the countdown timer and your score. An ASSISTANT button is available in the lower left corner. You are encouraged to use the assistant if you need help with a question.</p>
+            <p>A green check mark indicates a correct answer, and a red cross mark indicates an incorrect answer. The AI agent’s responses and feedback are shown on the same screen.</p>
+            <p>Please solve as many problems as you can.</p>
+          </div>        
           {/* 结尾 */}
           <p className="mt-6 text-cyan-400 text-xl font-semibold">
           </p>
