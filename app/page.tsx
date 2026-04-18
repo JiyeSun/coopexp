@@ -51,8 +51,8 @@ export default function Home() {
   const wrongAnswerCountRef = useRef(0);
   const pendingWrongPromptQuestionRef = useRef<number | null>(null);
 
-  // 用户是否在自动弹窗之前手动点过 assistant 按钮
-  const assistantOpenedManuallyBeforeAutoRef = useRef(false);
+  // 用户是否已经手动点过一次 assistant 按钮
+  const hasManuallyOpenedAssistantRef = useRef(false);
   // 自动弹窗只允许出现一次
   const autoHelpPromptShownRef = useRef(false);
 
@@ -83,7 +83,7 @@ export default function Home() {
         ...prev,
         {
           sender: "bot",
-          text: assistantOpenedManuallyBeforeAutoRef.current
+          text: hasManuallyOpenedAssistantRef.current
             ? shortHelpPromptText
             : originalHelpPromptText,
         },
@@ -291,7 +291,7 @@ export default function Home() {
             {showStartButton && (
               <button
                 onClick={() => {
-                  assistantOpenedManuallyBeforeAutoRef.current = false;
+                  hasManuallyOpenedAssistantRef.current = false;
                   autoHelpPromptShownRef.current = false;
                   pendingWrongPromptQuestionRef.current = null;
                   wrongAnswerCountRef.current = 0;
@@ -398,16 +398,20 @@ export default function Home() {
 
       <button
         onClick={() => {
-          assistantOpenedManuallyBeforeAutoRef.current = true;
           setShowChat(true);
 
-          setMessages((prev) => [
-            ...prev,
-            {
-              sender: "bot",
-              text: originalHelpPromptText,
-            },
-          ]);
+          // 只有第一次手动点击时才主动发送长信息
+          if (!hasManuallyOpenedAssistantRef.current && !autoHelpPromptShownRef.current) {
+            hasManuallyOpenedAssistantRef.current = true;
+
+            setMessages((prev) => [
+              ...prev,
+              {
+                sender: "bot",
+                text: originalHelpPromptText,
+              },
+            ]);
+          }
         }}
         className="fixed bottom-6 left-6 bg-black/80 backdrop-blur-md text-cyan-400 px-6 py-3 rounded-2xl border border-cyan-400 shadow-2xl tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
       >
