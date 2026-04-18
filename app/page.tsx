@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
 
 const questions = [
@@ -18,10 +19,15 @@ const questions = [
   { id: 14, correct: 1 },
 ];
 
-const triggerQuestions = [2, 6, 11]; // 第3、7、12题，index 从 0 开始
+const triggerQuestions = [2, 11]; // 第3题、第12题（index 从 0 开始）
+
+const helpPrompts = [
+  "Do you want me to help you with this one?",
+  "Would you like a hint for this question?",
+  "Need a hand with this one?",
+];
 
 type Message = { sender: string; text: string };
-
 type TimerHandle = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval> | null;
 
 export default function Home() {
@@ -42,8 +48,16 @@ export default function Home() {
   const countdownRef = useRef<TimerHandle>(null);
   const advanceRef = useRef<TimerHandle>(null);
   const feedbackRef = useRef<TimerHandle>(null);
+
   const questionLockedRef = useRef(false);
   const triggeredPromptRef = useRef<Set<number>>(new Set());
+
+  // 第3题之后，到第12题之前，第一次答错时自动弹一次
+  const nextWrongPromptArmedRef = useRef(false);
+  const nextWrongPromptUsedRef = useRef(false);
+
+  // 三次不同的帮助文案轮换
+  const helpPromptIndexRef = useRef(0);
 
   useEffect(() => {
     if (!started || current >= questions.length) return;
@@ -62,13 +76,9 @@ export default function Home() {
 
     if (triggerQuestions.includes(current) && !triggeredPromptRef.current.has(current)) {
       triggeredPromptRef.current.add(current);
-
-      if (!showChat) {
-        setShowChat(true);
-        setMessages((prev) => [...prev, { sender: "bot", text: "Do you want me to help you with this one?" }]);
-      }
+      showHelpPrompt();
     }
-  }, [current, started, showChat]);
+  }, [current, started]);
 
   useEffect(() => {
     if (!started) return;
@@ -88,13 +98,16 @@ export default function Home() {
         if (prev <= 1) {
           if (!questionLockedRef.current) {
             questionLockedRef.current = true;
+
             if (countdownRef.current) {
               clearInterval(countdownRef.current as ReturnType<typeof setInterval>);
               countdownRef.current = null;
             }
+
             if (advanceRef.current) {
               clearTimeout(advanceRef.current as ReturnType<typeof setTimeout>);
             }
+
             advanceRef.current = setTimeout(() => {
               setCurrent((prevQ) => (prevQ >= questions.length - 1 ? questions.length : prevQ + 1));
             }, 0);
@@ -123,6 +136,17 @@ export default function Home() {
 
   function generateOptions(id: number) {
     return Array.from({ length: 6 }, (_, i) => `/images/q${id}_a${i + 1}.png`);
+  }
+
+  function showHelpPrompt() {
+    const prompt = helpPrompts[helpPromptIndexRef.current % helpPrompts.length];
+    helpPromptIndexRef.current += 1;
+
+    if (!showChat) {
+      setShowChat(true);
+    }
+
+    setMessages((prev) => [...prev, { sender: "bot", text: prompt }]);
   }
 
   function goNextQuestion(delayMs: number) {
@@ -162,12 +186,39 @@ export default function Home() {
 
     if (isCorrect) {
       setScore((prev) => prev + 1);
+    } else {
+      // 第3题之后，到第12题之前，第一次答错时自动弹出帮助
+      if (
+        current > 2 &&
+        current < 11 &&
+        nextWrongPromptArmedRef.current &&
+        !nextWrongPromptUsedRef.current
+      ) {
+        nextWrongPromptUsedRef.current = true;
+        showHelpPrompt();
+      }
+    }
+
+    // 第3题完成后，开始监听“第3题到第12题之间的下一次答错”
+    if (current === 2) {
+      nextWrongPromptArmedRef.current = true;
+    }
+
+    // 第12题开始前停止监听，避免和第12题固定弹窗冲突
+    if (current === 10) {
+      nextWrongPromptArmedRef.current = false;
     }
 
     goNextQuestion(1500);
   }
 
   function generateReply(message: string) {
+    const normalized = message.trim().toLowerCase();
+
+    if (normalized === "no") {
+      return "No worries, go for it.";
+    }
+
     const match = message.match(/\d+/);
 
     if (match) {
@@ -248,9 +299,19 @@ export default function Home() {
             </div>
 
             <div className="mt-6 space-y-2 text-lg text-white text-left pl-6">
-              <p>There will be 14 matrix reasoning problems. You will have 30 seconds for each question. Each correct answer is worth 1 point.</p>
-              <p>The upper left corner shows the question number. The upper right corner shows the countdown timer and your score. An ASSISTANT button is available in the lower left corner. You are encouraged to use the assistant if you need help with a question.</p>
-              <p>A green check mark indicates a correct answer, and a red cross mark indicates an incorrect answer. The AI agent’s responses and feedback are shown on the same screen.</p>
+              <p>
+                There will be 14 matrix reasoning problems. You will have 30 seconds for each question.
+                Each correct answer is worth 1 point.
+              </p>
+              <p>
+                The upper left corner shows the question number. The upper right corner shows the countdown
+                timer and your score. An ASSISTANT button is available in the lower left corner. You are
+                encouraged to use the assistant if you need help with a question.
+              </p>
+              <p>
+                A green check mark indicates a correct answer, and a red cross mark indicates an incorrect
+                answer. The AI agent’s responses and feedback are shown on the same screen.
+              </p>
               <p>Please solve as many problems as you can.</p>
             </div>
           </div>
@@ -261,6 +322,10 @@ export default function Home() {
               <button
                 onClick={() => {
                   triggeredPromptRef.current = new Set();
+                  nextWrongPromptArmedRef.current = false;
+                  nextWrongPromptUsedRef.current = false;
+                  helpPromptIndexRef.current = 0;
+
                   setStarted(true);
                   setExperimentStartTime(Date.now());
                 }}
@@ -386,7 +451,10 @@ export default function Home() {
 
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             {messages.map((msg, index) => (
-              <div key={index} className={`flex items-end gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+              <div
+                key={index}
+                className={`flex items-end gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+              >
                 {msg.sender === "bot" && <img src="/images/bot.png" alt="bot" className="w-8 h-8 rounded-full" />}
 
                 <div
