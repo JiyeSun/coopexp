@@ -19,13 +19,13 @@ const questions = [
   { id: 14, correct: 1 },
 ];
 
-const autoPromptQuestionIndex = 7; // 第8题，index 从 0 开始
-
-const helpPromptText =
+const originalHelpPromptText =
   "Do you want me to help you?\n\n" +
   "If you need help solving a question, just ask me. Tell me which question you are struggling with and let's solve it together. I can help you with up to 10 questions. For example, you can ask: 'Help me on Question 1.'";
 
-type Message = { sender: string; text: string };
+const shortHelpPromptText = "Do you want me to help you? Tell me which question you are trying to solve.";
+
+type Message = { sender: "user" | "bot"; text: string };
 type TimerHandle = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval> | null;
 
 export default function Home() {
@@ -48,16 +48,16 @@ export default function Home() {
   const feedbackRef = useRef<TimerHandle>(null);
 
   const questionLockedRef = useRef(false);
-  const promptedQuestionsRef = useRef<Set<number>>(new Set());
 
   const wrongAnswerCountRef = useRef(0);
   const pendingWrongPromptQuestionRef = useRef<number | null>(null);
-  const wrongPromptUsedRef = useRef(false);
+  const autoHelpPromptShownRef = useRef(false);
+  const manualAssistantOpenedRef = useRef(false);
 
   useEffect(() => {
     if (!started || current >= questions.length) return;
-
     if (!experimentStartTime) return;
+
     const interval = setInterval(() => {
       setTotalTime(Math.floor((Date.now() - experimentStartTime) / 1000));
     }, 1000);
@@ -70,18 +70,25 @@ export default function Home() {
     if (current >= questions.length) return;
 
     const shouldShowAutoPrompt =
-      (current === autoPromptQuestionIndex && !promptedQuestionsRef.current.has(current)) ||
-      (pendingWrongPromptQuestionRef.current === current &&
-        !wrongPromptUsedRef.current &&
-        !promptedQuestionsRef.current.has(current));
+      pendingWrongPromptQuestionRef.current === current && !autoHelpPromptShownRef.current;
 
     if (shouldShowAutoPrompt) {
-      promptedQuestionsRef.current.add(current);
+      autoHelpPromptShownRef.current = true;
       pendingWrongPromptQuestionRef.current = null;
-      wrongPromptUsedRef.current = true;
-      showHelpPrompt();
+
+      if (!showChat) {
+        setShowChat(true);
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: manualAssistantOpenedRef.current ? shortHelpPromptText : originalHelpPromptText,
+        },
+      ]);
     }
-  }, [current, started]);
+  }, [current, started, showChat]);
 
   useEffect(() => {
     if (!started) return;
@@ -141,14 +148,6 @@ export default function Home() {
     return Array.from({ length: 6 }, (_, i) => `/images/q${id}_a${i + 1}.png`);
   }
 
-  function showHelpPrompt() {
-    if (!showChat) {
-      setShowChat(true);
-    }
-
-    setMessages((prev) => [...prev, { sender: "bot", text: helpPromptText }]);
-  }
-
   function goNextQuestion(delayMs: number) {
     if (questionLockedRef.current) return;
     questionLockedRef.current = true;
@@ -189,7 +188,7 @@ export default function Home() {
     } else {
       wrongAnswerCountRef.current += 1;
 
-      // 累计答错到第2次之后，下一题自动弹一次
+      // 累计答错到第 2 次后，下一题自动弹一次
       if (wrongAnswerCountRef.current === 2) {
         pendingWrongPromptQuestionRef.current = current + 1;
       }
@@ -300,10 +299,14 @@ export default function Home() {
             {showStartButton && (
               <button
                 onClick={() => {
-                  promptedQuestionsRef.current = new Set();
-                  wrongAnswerCountRef.current = 0;
+                  manualAssistantOpenedRef.current = false;
+                  autoHelpPromptShownRef.current = false;
                   pendingWrongPromptQuestionRef.current = null;
-                  wrongPromptUsedRef.current = false;
+                  wrongAnswerCountRef.current = 0;
+
+                  setMessages([]);
+                  setInput("");
+                  setShowChat(false);
 
                   setStarted(true);
                   setExperimentStartTime(Date.now());
@@ -403,16 +406,17 @@ export default function Home() {
 
       <button
         onClick={() => {
-          if (!showChat && messages.length === 0) {
+          setShowChat(true);
+
+          if (!manualAssistantOpenedRef.current) {
+            manualAssistantOpenedRef.current = true;
             setMessages([
               {
                 sender: "bot",
-                text:
-                  "Hello, if you need help solving a question, just ask me. Tell me which question you are struggling with and let's solve it together. I can help you with up to 10 questions. For example, you can ask: 'Help me on Question 1.'",
+                text: originalHelpPromptText,
               },
             ]);
           }
-          setShowChat((prev) => !prev);
         }}
         className="fixed bottom-6 left-6 bg-black/80 backdrop-blur-md text-cyan-400 px-6 py-3 rounded-2xl border border-cyan-400 shadow-2xl tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
       >
