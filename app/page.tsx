@@ -19,13 +19,11 @@ const questions = [
   { id: 14, correct: 1 },
 ];
 
-const triggerQuestions = [2, 11]; // 第3题、第12题（index 从 0 开始）
+const autoPromptQuestionIndex = 7; // 第8题，index 从 0 开始
 
-const helpPrompts = [
-  "Do you want me to help you with this one?",
-  "Would you like a hint for this question?",
-  "Need a hand with this one?",
-];
+const helpPromptText =
+  "Do you want me to help you?\n\n" +
+  "If you need help solving a question, just ask me. Tell me which question you are struggling with and let's solve it together. I can help you with up to 10 questions. For example, you can ask: 'Help me on Question 1.'";
 
 type Message = { sender: string; text: string };
 type TimerHandle = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval> | null;
@@ -50,14 +48,11 @@ export default function Home() {
   const feedbackRef = useRef<TimerHandle>(null);
 
   const questionLockedRef = useRef(false);
-  const triggeredPromptRef = useRef<Set<number>>(new Set());
+  const promptedQuestionsRef = useRef<Set<number>>(new Set());
 
-  // 第3题之后，到第12题之前，第一次答错时自动弹一次
-  const nextWrongPromptArmedRef = useRef(false);
-  const nextWrongPromptUsedRef = useRef(false);
-
-  // 三次不同的帮助文案轮换
-  const helpPromptIndexRef = useRef(0);
+  const wrongAnswerCountRef = useRef(0);
+  const pendingWrongPromptQuestionRef = useRef<number | null>(null);
+  const wrongPromptUsedRef = useRef(false);
 
   useEffect(() => {
     if (!started || current >= questions.length) return;
@@ -74,8 +69,16 @@ export default function Home() {
     if (!started) return;
     if (current >= questions.length) return;
 
-    if (triggerQuestions.includes(current) && !triggeredPromptRef.current.has(current)) {
-      triggeredPromptRef.current.add(current);
+    const shouldShowAutoPrompt =
+      (current === autoPromptQuestionIndex && !promptedQuestionsRef.current.has(current)) ||
+      (pendingWrongPromptQuestionRef.current === current &&
+        !wrongPromptUsedRef.current &&
+        !promptedQuestionsRef.current.has(current));
+
+    if (shouldShowAutoPrompt) {
+      promptedQuestionsRef.current.add(current);
+      pendingWrongPromptQuestionRef.current = null;
+      wrongPromptUsedRef.current = true;
       showHelpPrompt();
     }
   }, [current, started]);
@@ -139,14 +142,11 @@ export default function Home() {
   }
 
   function showHelpPrompt() {
-    const prompt = helpPrompts[helpPromptIndexRef.current % helpPrompts.length];
-    helpPromptIndexRef.current += 1;
-
     if (!showChat) {
       setShowChat(true);
     }
 
-    setMessages((prev) => [...prev, { sender: "bot", text: prompt }]);
+    setMessages((prev) => [...prev, { sender: "bot", text: helpPromptText }]);
   }
 
   function goNextQuestion(delayMs: number) {
@@ -187,38 +187,18 @@ export default function Home() {
     if (isCorrect) {
       setScore((prev) => prev + 1);
     } else {
-      // 第3题之后，到第12题之前，第一次答错时自动弹出帮助
-      if (
-        current > 2 &&
-        current < 11 &&
-        nextWrongPromptArmedRef.current &&
-        !nextWrongPromptUsedRef.current
-      ) {
-        nextWrongPromptUsedRef.current = true;
-        showHelpPrompt();
+      wrongAnswerCountRef.current += 1;
+
+      // 累计答错到第2次之后，下一题自动弹一次
+      if (wrongAnswerCountRef.current === 2) {
+        pendingWrongPromptQuestionRef.current = current + 1;
       }
-    }
-
-    // 第3题完成后，开始监听“第3题到第12题之间的下一次答错”
-    if (current === 2) {
-      nextWrongPromptArmedRef.current = true;
-    }
-
-    // 第12题开始前停止监听，避免和第12题固定弹窗冲突
-    if (current === 10) {
-      nextWrongPromptArmedRef.current = false;
     }
 
     goNextQuestion(1500);
   }
 
   function generateReply(message: string) {
-    const normalized = message.trim().toLowerCase();
-
-    if (normalized === "no") {
-      return "No worries, go for it.";
-    }
-
     const match = message.match(/\d+/);
 
     if (match) {
@@ -231,7 +211,6 @@ export default function Home() {
       const allIndices = [0, 1, 2, 3, 4, 5];
       const wrongIndices = allIndices.filter((i) => i !== correctIndex);
 
-      // Fisher-Yates shuffle
       for (let i = wrongIndices.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
@@ -321,10 +300,10 @@ export default function Home() {
             {showStartButton && (
               <button
                 onClick={() => {
-                  triggeredPromptRef.current = new Set();
-                  nextWrongPromptArmedRef.current = false;
-                  nextWrongPromptUsedRef.current = false;
-                  helpPromptIndexRef.current = 0;
+                  promptedQuestionsRef.current = new Set();
+                  wrongAnswerCountRef.current = 0;
+                  pendingWrongPromptQuestionRef.current = null;
+                  wrongPromptUsedRef.current = false;
 
                   setStarted(true);
                   setExperimentStartTime(Date.now());
@@ -458,7 +437,7 @@ export default function Home() {
                 {msg.sender === "bot" && <img src="/images/bot.png" alt="bot" className="w-8 h-8 rounded-full" />}
 
                 <div
-                  className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm ${
+                  className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm whitespace-pre-line ${
                     msg.sender === "user" ? "bg-black text-white" : "bg-white text-black border border-black"
                   }`}
                 >
@@ -478,7 +457,10 @@ export default function Home() {
               className="flex-1 border border-gray-300 rounded-xl px-4 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-cyan-400"
               placeholder="Ask about a question..."
             />
-            <button onClick={sendMessage} className="px-5 bg-gray-900 text-white rounded-xl text-sm hover:bg-black transition">
+            <button
+              onClick={sendMessage}
+              className="px-5 bg-gray-900 text-white rounded-xl text-sm hover:bg-black transition"
+            >
               Send
             </button>
           </div>
