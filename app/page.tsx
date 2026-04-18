@@ -65,7 +65,7 @@ export default function Home() {
 
       if (!showChat) {
         setShowChat(true);
-        setMessages((prev) => [...prev, { sender: "bot", text: "Would you like any help?" }]);
+        setMessages((prev) => [...prev, { sender: "bot", text: "Do you want me to help you with this one?" }]);
       }
     }
   }, [current, started, showChat]);
@@ -176,8 +176,28 @@ export default function Home() {
 
       if (!question) return "I couldn't find that question number.";
 
-      const letter = String.fromCharCode(65 + question.correct);
-      return `The correct answer for question ${questionNumber} is option ${letter}.`;
+      const correctIndex = question.correct;
+      const allIndices = [0, 1, 2, 3, 4, 5];
+      const wrongIndices = allIndices.filter((i) => i !== correctIndex);
+
+      // Fisher-Yates shuffle
+      for (let i = wrongIndices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
+      }
+
+      const picked = wrongIndices.slice(0, 2);
+      const letters = picked.map((i) => String.fromCharCode(65 + i));
+
+      const responses = [
+        `It is not option ${letters[0]} or ${letters[1]}.`,
+        `You can eliminate ${letters[0]} and ${letters[1]}.`,
+        `${letters[0]} and ${letters[1]} are definitely incorrect.`,
+        `Try avoiding ${letters[0]} and ${letters[1]}.`,
+        `I would rule out ${letters[0]} and ${letters[1]}.`,
+      ];
+
+      return responses[Math.floor(Math.random() * responses.length)];
     }
 
     return "Type a question number (e.g., 1 or q1) to get help.";
