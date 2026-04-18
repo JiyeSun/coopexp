@@ -45,14 +45,16 @@ export default function Home() {
 
   const countdownRef = useRef<TimerHandle>(null);
   const advanceRef = useRef<TimerHandle>(null);
-  const feedbackRef = useRef<TimerHandle>(null);
 
   const questionLockedRef = useRef(false);
 
   const wrongAnswerCountRef = useRef(0);
   const pendingWrongPromptQuestionRef = useRef<number | null>(null);
+
+  // 用户是否在自动弹窗之前手动点过 assistant 按钮
+  const assistantOpenedManuallyBeforeAutoRef = useRef(false);
+  // 自动弹窗只允许出现一次
   const autoHelpPromptShownRef = useRef(false);
-  const manualAssistantOpenedRef = useRef(false);
 
   useEffect(() => {
     if (!started || current >= questions.length) return;
@@ -76,19 +78,18 @@ export default function Home() {
       autoHelpPromptShownRef.current = true;
       pendingWrongPromptQuestionRef.current = null;
 
-      if (!showChat) {
-        setShowChat(true);
-      }
-
+      setShowChat(true);
       setMessages((prev) => [
         ...prev,
         {
           sender: "bot",
-          text: manualAssistantOpenedRef.current ? shortHelpPromptText : originalHelpPromptText,
+          text: assistantOpenedManuallyBeforeAutoRef.current
+            ? shortHelpPromptText
+            : originalHelpPromptText,
         },
       ]);
     }
-  }, [current, started, showChat]);
+  }, [current, started]);
 
   useEffect(() => {
     if (!started) return;
@@ -96,7 +97,6 @@ export default function Home() {
 
     if (countdownRef.current) clearInterval(countdownRef.current as ReturnType<typeof setInterval>);
     if (advanceRef.current) clearTimeout(advanceRef.current as ReturnType<typeof setTimeout>);
-    if (feedbackRef.current) clearTimeout(feedbackRef.current as ReturnType<typeof setTimeout>);
 
     setTimeLeft(30);
     questionLockedRef.current = false;
@@ -137,10 +137,6 @@ export default function Home() {
         clearTimeout(advanceRef.current as ReturnType<typeof setTimeout>);
         advanceRef.current = null;
       }
-      if (feedbackRef.current) {
-        clearTimeout(feedbackRef.current as ReturnType<typeof setTimeout>);
-        feedbackRef.current = null;
-      }
     };
   }, [current, started]);
 
@@ -155,10 +151,6 @@ export default function Home() {
     if (countdownRef.current) {
       clearInterval(countdownRef.current as ReturnType<typeof setInterval>);
       countdownRef.current = null;
-    }
-    if (feedbackRef.current) {
-      clearTimeout(feedbackRef.current as ReturnType<typeof setTimeout>);
-      feedbackRef.current = null;
     }
     if (advanceRef.current) {
       clearTimeout(advanceRef.current as ReturnType<typeof setTimeout>);
@@ -299,7 +291,7 @@ export default function Home() {
             {showStartButton && (
               <button
                 onClick={() => {
-                  manualAssistantOpenedRef.current = false;
+                  assistantOpenedManuallyBeforeAutoRef.current = false;
                   autoHelpPromptShownRef.current = false;
                   pendingWrongPromptQuestionRef.current = null;
                   wrongAnswerCountRef.current = 0;
@@ -406,17 +398,16 @@ export default function Home() {
 
       <button
         onClick={() => {
+          assistantOpenedManuallyBeforeAutoRef.current = true;
           setShowChat(true);
 
-          if (!manualAssistantOpenedRef.current) {
-            manualAssistantOpenedRef.current = true;
-            setMessages([
-              {
-                sender: "bot",
-                text: originalHelpPromptText,
-              },
-            ]);
-          }
+          setMessages((prev) => [
+            ...prev,
+            {
+              sender: "bot",
+              text: originalHelpPromptText,
+            },
+          ]);
         }}
         className="fixed bottom-6 left-6 bg-black/80 backdrop-blur-md text-cyan-400 px-6 py-3 rounded-2xl border border-cyan-400 shadow-2xl tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
       >
