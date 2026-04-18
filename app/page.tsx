@@ -210,7 +210,7 @@ export default function Home() {
               <p>RULES</p>
             </div>
 
-            <div className="mt-6 space-y-2 text-lg text-white">
+            <div className="mt-6 space-y-2 text-lg text-white text-left pl-6">
               <p>There will be 14 matrix reasoning problems. You will have 30 seconds for each question. Each correct answer is worth 1 point.</p>
               <p>The upper left corner shows the question number. The upper right corner shows the countdown timer and your score. An ASSISTANT button is available in the lower left corner. You are encouraged to use the assistant if you need help with a question.</p>
               <p>A green check mark indicates a correct answer, and a red cross mark indicates an incorrect answer. The AI agent’s responses and feedback are shown on the same screen.</p>
@@ -369,7 +369,7 @@ export default function Home() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              className="flex-1 border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              className="flex-1 border border-gray-300 rounded-xl px-4 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-cyan-400"
               placeholder="Ask about a question..."
             />
             <button onClick={sendMessage} className="px-5 bg-gray-900 text-white rounded-xl text-sm hover:bg-black transition">
