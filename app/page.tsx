@@ -25,6 +25,9 @@ const originalHelpPromptText =
 
 const shortHelpPromptText = "Do you want me to help you? Tell me which question you are trying to solve.";
 
+const conditionId = "1";
+const QUALTRICS_RETURN_URL = "https://iu.co1.qualtrics.com/jfe/form/SV_2tvhb3IQU4w77Om";
+
 type Message = { sender: "user" | "bot"; text: string };
 type TimerHandle = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval> | null;
 
@@ -43,6 +46,16 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
 
+  const [participantId] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    const saved = window.localStorage.getItem("participant_id");
+    if (saved) return saved;
+
+    const id = crypto.randomUUID();
+    window.localStorage.setItem("participant_id", id);
+    return id;
+  });
+
   const countdownRef = useRef<TimerHandle>(null);
   const advanceRef = useRef<TimerHandle>(null);
 
@@ -51,9 +64,7 @@ export default function Home() {
   const wrongAnswerCountRef = useRef(0);
   const pendingWrongPromptQuestionRef = useRef<number | null>(null);
 
-  // 用户是否已经手动点过一次 assistant 按钮
   const hasManuallyOpenedAssistantRef = useRef(false);
-  // 自动弹窗只允许出现一次
   const autoHelpPromptShownRef = useRef(false);
 
   useEffect(() => {
@@ -138,6 +149,17 @@ export default function Home() {
     };
   }, [current, started]);
 
+  useEffect(() => {
+    if (!started) return;
+    if (current < questions.length) return;
+
+    const timer = setTimeout(() => {
+      goBackToQuestionnaire();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [current, started, participantId]);
+
   function generateOptions(id: number) {
     return Array.from({ length: 6 }, (_, i) => `/images/q${id}_a${i + 1}.png`);
   }
@@ -178,7 +200,6 @@ export default function Home() {
     } else {
       wrongAnswerCountRef.current += 1;
 
-      // 累计答错到第 2 次后，下一题自动弹一次
       if (wrongAnswerCountRef.current === 2) {
         pendingWrongPromptQuestionRef.current = current + 1;
       }
@@ -207,19 +228,16 @@ export default function Home() {
       fourteenth: 14,
     };
 
-    // 1st / 2nd / 3rd / 4th
     const ordinalNumberMatch = text.match(/\b(\d+)(st|nd|rd|th)\b/);
     if (ordinalNumberMatch) {
       return parseInt(ordinalNumberMatch[1], 10);
     }
 
-    // q1 / question 2 / 12
     const digitMatch = text.match(/\d+/);
     if (digitMatch) {
       return parseInt(digitMatch[0], 10);
     }
 
-    // first / second / third
     for (const [word, num] of Object.entries(ordinalWordMap)) {
       if (text.includes(word)) {
         return num;
@@ -272,6 +290,15 @@ export default function Home() {
 
     setMessages((prev) => [...prev, userMessage, botReply]);
     setInput("");
+  }
+
+  function goBackToQuestionnaire() {
+    if (typeof window === "undefined") return;
+
+    window.location.href =
+      `${QUALTRICS_RETURN_URL}` +
+      `?participant_id=${encodeURIComponent(participantId)}` +
+      `&condition_id=${encodeURIComponent(conditionId)}`;
   }
 
   if (showCover) {
@@ -335,6 +362,10 @@ export default function Home() {
                   pendingWrongPromptQuestionRef.current = null;
                   wrongAnswerCountRef.current = 0;
 
+                  if (typeof window !== "undefined") {
+                    window.localStorage.setItem("participant_id", participantId);
+                  }
+
                   setMessages([]);
                   setInput("");
                   setShowChat(false);
@@ -369,6 +400,13 @@ export default function Home() {
           <p className="text-xl text-gray-300">
             Your score: <span className="text-cyan-400 font-semibold">{score}</span>
           </p>
+
+          <button
+            onClick={goBackToQuestionnaire}
+            className="mt-8 px-8 py-3 rounded-2xl bg-white text-black font-medium hover:bg-gray-200 transition"
+          >
+            Back to Questionnaire
+          </button>
         </div>
       </div>
     );
@@ -441,7 +479,6 @@ export default function Home() {
         onClick={() => {
           setShowChat(true);
 
-          // 只有第一次手动点击时才主动发送长信息
           if (!hasManuallyOpenedAssistantRef.current && !autoHelpPromptShownRef.current) {
             hasManuallyOpenedAssistantRef.current = true;
 
