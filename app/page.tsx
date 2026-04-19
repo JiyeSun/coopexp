@@ -83,9 +83,7 @@ export default function Home() {
         ...prev,
         {
           sender: "bot",
-          text: hasManuallyOpenedAssistantRef.current
-            ? shortHelpPromptText
-            : originalHelpPromptText,
+          text: hasManuallyOpenedAssistantRef.current ? shortHelpPromptText : originalHelpPromptText,
         },
       ]);
     }
@@ -189,11 +187,52 @@ export default function Home() {
     goNextQuestion(1500);
   }
 
-  function generateReply(message: string) {
-    const match = message.match(/\d+/);
+  function parseQuestionNumber(message: string): number | null {
+    const text = message.toLowerCase();
 
-    if (match) {
-      const questionNumber = parseInt(match[0], 10);
+    const ordinalWordMap: Record<string, number> = {
+      first: 1,
+      second: 2,
+      third: 3,
+      fourth: 4,
+      fifth: 5,
+      sixth: 6,
+      seventh: 7,
+      eighth: 8,
+      ninth: 9,
+      tenth: 10,
+      eleventh: 11,
+      twelfth: 12,
+      thirteenth: 13,
+      fourteenth: 14,
+    };
+
+    // 1st / 2nd / 3rd / 4th
+    const ordinalNumberMatch = text.match(/\b(\d+)(st|nd|rd|th)\b/);
+    if (ordinalNumberMatch) {
+      return parseInt(ordinalNumberMatch[1], 10);
+    }
+
+    // q1 / question 2 / 12
+    const digitMatch = text.match(/\d+/);
+    if (digitMatch) {
+      return parseInt(digitMatch[0], 10);
+    }
+
+    // first / second / third
+    for (const [word, num] of Object.entries(ordinalWordMap)) {
+      if (text.includes(word)) {
+        return num;
+      }
+    }
+
+    return null;
+  }
+
+  function generateReply(message: string) {
+    const questionNumber = parseQuestionNumber(message);
+
+    if (questionNumber) {
       const question = questions.find((q) => q.id === questionNumber);
 
       if (!question) return "I couldn't find that question number.";
@@ -221,7 +260,7 @@ export default function Home() {
       return responses[Math.floor(Math.random() * responses.length)];
     }
 
-    return "Type a question number (e.g., 1 or q1) to get help.";
+    return "Type a question number (e.g., 1, q1, 1st, or first) to get help.";
   }
 
   function sendMessage() {
@@ -323,7 +362,9 @@ export default function Home() {
         <div className="bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] max-w-xl px-16 py-14 text-center">
           <h1 className="text-3xl font-semibold mb-6 tracking-wide">Experiment completed.</h1>
           <p className="text-lg text-gray-400 mt-4">
-            Total time: <span className="text-cyan-400 font-semibold">{minutes}m {seconds}s</span>
+            Total time: <span className="text-cyan-400 font-semibold">
+              {minutes}m {seconds}s
+            </span>
           </p>
           <p className="text-xl text-gray-300">
             Your score: <span className="text-cyan-400 font-semibold">{score}</span>
