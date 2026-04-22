@@ -74,9 +74,12 @@ export default function Home() {
 
   const countdownRef = useRef<TimerHandle>(null);
   const advanceRef = useRef<TimerHandle>(null);
+  const answerTimeoutRef = useRef<TimerHandle>(null);
   const autoReturnTimerRef = useRef<TimerHandle>(null);
 
-  const questionLockedRef = useRef(false);
+  const answerLockRef = useRef(false);
+  const advanceLockRef = useRef(false);
+
   const questionStartTimeRef = useRef<number>(0);
 
   const wrongAnswerCountRef = useRef(0);
@@ -85,164 +88,122 @@ export default function Home() {
   const hasManuallyOpenedAssistantRef = useRef(false);
   const autoHelpPromptShownRef = useRef(false);
 
+  const currentTrialRef = useRef<TrialRecord | null>(null);
+  const trialCommittedRef = useRef(false);
+  const trialsRef = useRef<TrialRecord[]>([]);
   const saveLockRef = useRef(false);
 
-  const trialsRef = useRef<TrialRecord[]>([]);
-  const currentTrialRef = useRef<TrialRecord | null>(null);
-  const currentTrialCommittedRef = useRef(false);
-
-  useEffect(() => {
-    if (!started || current >= questions.length) return;
-    if (!experimentStartTime) return;
-
-    const interval = setInterval(() => {
-      setTotalTime(Math.floor((Date.now() - experimentStartTime) / 1000));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [started, experimentStartTime, current]);
-
-  useEffect(() => {
-    if (!started) return;
-    if (current >= questions.length) return;
-
-    const shouldShowAutoPrompt =
-      pendingWrongPromptQuestionRef.current === current && !autoHelpPromptShownRef.current;
-
-    if (shouldShowAutoPrompt) {
-      autoHelpPromptShownRef.current = true;
-      pendingWrongPromptQuestionRef.current = null;
-
-      setShowChat(true);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "bot",
-          text: hasManuallyOpenedAssistantRef.current ? shortHelpPromptText : originalHelpPromptText,
-        },
-      ]);
+  function clearTimer(ref: { current: TimerHandle }) {
+    if (ref.current) {
+      clearTimeout(ref.current as ReturnType<typeof setTimeout>);
+      clearInterval(ref.current as ReturnType<typeof setInterval>);
+      ref.current = null;
     }
-  }, [current, started]);
-
-  useEffect(() => {
-    if (!started || current >= questions.length) return;
-
-    if (countdownRef.current) clearInterval(countdownRef.current as ReturnType<typeof setInterval>);
-    if (advanceRef.current) clearTimeout(advanceRef.current as ReturnType<typeof setTimeout>);
-
-    setTimeLeft(30);
-    questionLockedRef.current = false;
-    setSelectedIndex(null);
-    setIsCorrectSelection(null);
-    questionStartTimeRef.current = Date.now();
-
-    currentTrialRef.current = {
-      rid,
-      question_number: current + 1,
-      chosen_option: null,
-      correct_option: questions[current].correct,
-      rt_seconds: 0,
-      ended_by_timeout: false,
-      saved_at: "",
-    };
-    currentTrialCommittedRef.current = false;
-
-    countdownRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (!questionLockedRef.current) {
-            questionLockedRef.current = true;
-
-            if (countdownRef.current) {
-              clearInterval(countdownRef.current as ReturnType<typeof setInterval>);
-              countdownRef.current = null;
-            }
-
-            commitCurrentTrial(true);
-            goNextQuestion(0);
-          }
-
-          return 30;
-        }
-
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current as ReturnType<typeof setInterval>);
-        countdownRef.current = null;
-      }
-      if (advanceRef.current) {
-        clearTimeout(advanceRef.current as ReturnType<typeof setTimeout>);
-        advanceRef.current = null;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, started]);
-
-  useEffect(() => {
-    if (!started) return;
-    if (current < questions.length) return;
-
-    autoReturnTimerRef.current = setTimeout(() => {
-      void saveAndReturnToQualtrics();
-    }, 2000);
-
-    return () => {
-      if (autoReturnTimerRef.current) {
-        clearTimeout(autoReturnTimerRef.current as ReturnType<typeof setTimeout>);
-        autoReturnTimerRef.current = null;
-      }
-    };
-  }, [current, started]);
+  }
 
   function generateOptions(id: number) {
     return Array.from({ length: 6 }, (_, i) => `/images/q${id}_a${i + 1}.png`);
   }
 
-  function clearTimer(ref: React.MutableRefObject<TimerHandle>) {
-    if (!ref.current) return;
-    clearTimeout(ref.current as ReturnType<typeof setTimeout>);
-    clearInterval(ref.current as ReturnType<typeof setInterval>);
-    ref.current = null;
-  }
-
-  function recordCurrentTrial(index: number, rtSeconds: number) {
-    if (!currentTrialRef.current) return;
-
-    currentTrialRef.current.chosen_option = index;
-    currentTrialRef.current.rt_seconds = Number(rtSeconds.toFixed(3));
-    currentTrialRef.current.ended_by_timeout = false;
-  }
-
-  function commitCurrentTrial(endedByTimeout: boolean) {
-    if (currentTrialCommittedRef.current) return;
-    if (!currentTrialRef.current) return;
-
-    const finalTrial: TrialRecord = {
-      ...currentTrialRef.current,
-      ended_by_timeout: endedByTimeout,
-      saved_at: new Date().toISOString(),
+  function initCurrentTrial() {
+    const q = questions[current];
+    currentTrialRef.current = {
+      rid,
+      question_number: current + 1,
+      chosen_option: null,
+      correct_option: q.correct,
+      rt_seconds: 0,
+      ended_by_timeout: false,
+      saved_at: "",
     };
+    trialCommittedRef.current = false;
+  }
 
-    trialsRef.current = [...trialsRef.current, finalTrial];
-    currentTrialCommittedRef.current = true;
+  function updateCurrentTrial(chosenOption: number | null, endedByTimeout: boolean, rtSeconds?: number) {
+    if (!currentTrialRef.current) return;
+
+    currentTrialRef.current.chosen_option = chosenOption;
+    currentTrialRef.current.correct_option = questions[current].correct;
+    currentTrialRef.current.ended_by_timeout = endedByTimeout;
+    currentTrialRef.current.rt_seconds = Number(
+      (rtSeconds ?? Math.max(0, (Date.now() - questionStartTimeRef.current) / 1000)).toFixed(3)
+    );
+  }
+
+  function commitCurrentTrial() {
+    if (trialCommittedRef.current) return;
+    if (!currentTrialRef.current) return;
+
+    trialsRef.current = [
+      ...trialsRef.current,
+      {
+        ...currentTrialRef.current,
+        saved_at: new Date().toISOString(),
+      },
+    ];
+    trialCommittedRef.current = true;
   }
 
   function goNextQuestion(delayMs: number) {
-    if (questionLockedRef.current) return;
-    questionLockedRef.current = true;
+    if (advanceLockRef.current) return;
+    advanceLockRef.current = true;
 
+    clearTimer(answerTimeoutRef);
     clearTimer(countdownRef);
     clearTimer(advanceRef);
 
     advanceRef.current = setTimeout(() => {
       setSelectedIndex(null);
       setIsCorrectSelection(null);
-      setCurrent((prev) => prev + 1);
+      setCurrent((prev) => (prev >= questions.length - 1 ? questions.length : prev + 1));
+      setTimeout(() => {
+        advanceLockRef.current = false;
+      }, 0);
     }, delayMs);
+  }
+
+  function handleTimeout() {
+    if (answerLockRef.current || selectedIndex !== null || advanceLockRef.current) return;
+
+    answerLockRef.current = true;
+
+    updateCurrentTrial(null, true);
+    commitCurrentTrial();
+
+    goNextQuestion(0);
+
+    answerLockRef.current = false;
+  }
+
+  function handleAnswer(index: number) {
+    if (!started) return;
+    if (current >= questions.length) return;
+    if (answerLockRef.current || selectedIndex !== null || advanceLockRef.current) return;
+
+    answerLockRef.current = true;
+
+    const isCorrect = index === questions[current].correct;
+    const rtSeconds = Math.max(0, (Date.now() - questionStartTimeRef.current) / 1000);
+
+    setSelectedIndex(index);
+    setIsCorrectSelection(isCorrect);
+
+    updateCurrentTrial(index, false, rtSeconds);
+    commitCurrentTrial();
+
+    if (isCorrect) {
+      setScore((prev) => prev + 1);
+    } else {
+      wrongAnswerCountRef.current += 1;
+
+      if (wrongAnswerCountRef.current === 2) {
+        pendingWrongPromptQuestionRef.current = current + 1;
+      }
+    }
+
+    goNextQuestion(1500);
+
+    answerLockRef.current = false;
   }
 
   function parseQuestionNumber(message: string): number | null {
@@ -266,10 +227,14 @@ export default function Home() {
     };
 
     const ordinalNumberMatch = text.match(/\b(\d+)(st|nd|rd|th)\b/);
-    if (ordinalNumberMatch) return parseInt(ordinalNumberMatch[1], 10);
+    if (ordinalNumberMatch) {
+      return parseInt(ordinalNumberMatch[1], 10);
+    }
 
     const digitMatch = text.match(/\d+/);
-    if (digitMatch) return parseInt(digitMatch[0], 10);
+    if (digitMatch) {
+      return parseInt(digitMatch[0], 10);
+    }
 
     for (const [word, num] of Object.entries(ordinalWordMap)) {
       if (text.includes(word)) return num;
@@ -283,6 +248,7 @@ export default function Home() {
 
     if (questionNumber) {
       const question = questions.find((q) => q.id === questionNumber);
+
       if (!question) return "I couldn't find that question number.";
 
       const correctIndex = question.correct;
@@ -322,7 +288,7 @@ export default function Home() {
     setInput("");
   }
 
-  async function postToGoogleSheet(payload: Record<string, string>) {
+  function postToGoogleSheet(payload: Record<string, string>) {
     return new Promise<void>((resolve, reject) => {
       const iframeName = `gs-submit-frame-${Date.now()}`;
 
@@ -410,41 +376,90 @@ export default function Home() {
     }
   }
 
-  function goBackToQuestionnaire() {
-    void saveAndReturnToQualtrics();
-  }
+  useEffect(() => {
+    if (!started || current >= questions.length) return;
+    if (!experimentStartTime) return;
 
-  function handleAnswer(index: number) {
+    const interval = setInterval(() => {
+      setTotalTime(Math.floor((Date.now() - experimentStartTime) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [started, experimentStartTime, current]);
+
+  useEffect(() => {
     if (!started) return;
     if (current >= questions.length) return;
-    if (questionLockedRef.current) return;
-    if (selectedIndex !== null) return;
 
-    const question = questions[current];
-    const isCorrect = index === question.correct;
-    const rtSeconds = Math.max(0, (Date.now() - questionStartTimeRef.current) / 1000);
+    const shouldShowAutoPrompt =
+      pendingWrongPromptQuestionRef.current === current && !autoHelpPromptShownRef.current;
 
-    setSelectedIndex(index);
-    setIsCorrectSelection(isCorrect);
+    if (shouldShowAutoPrompt) {
+      autoHelpPromptShownRef.current = true;
+      pendingWrongPromptQuestionRef.current = null;
 
-    questionLockedRef.current = true;
-
-    recordCurrentTrial(index, rtSeconds);
-    commitCurrentTrial(false);
-
-    if (isCorrect) {
-      setScore((prev) => prev + 1);
-      goNextQuestion(1500);
-    } else {
-      wrongAnswerCountRef.current += 1;
-
-      if (wrongAnswerCountRef.current === 2) {
-        pendingWrongPromptQuestionRef.current = current + 1;
-      }
-
-      goNextQuestion(1500);
+      setShowChat(true);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: hasManuallyOpenedAssistantRef.current ? shortHelpPromptText : originalHelpPromptText,
+        },
+      ]);
     }
-  }
+  }, [current, started]);
+
+  useEffect(() => {
+    if (!started || current >= questions.length) return;
+
+    clearTimer(countdownRef);
+    clearTimer(advanceRef);
+    clearTimer(answerTimeoutRef);
+
+    answerLockRef.current = false;
+    advanceLockRef.current = false;
+
+    setTimeLeft(30);
+    questionStartTimeRef.current = Date.now();
+    setSelectedIndex(null);
+    setIsCorrectSelection(null);
+
+    initCurrentTrial();
+
+    countdownRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearTimer(countdownRef);
+          handleTimeout();
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearTimer(countdownRef);
+      clearTimer(advanceRef);
+      clearTimer(answerTimeoutRef);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, started]);
+
+  useEffect(() => {
+    if (!started) return;
+    if (current < questions.length) return;
+
+    autoReturnTimerRef.current = setTimeout(() => {
+      void saveAndReturnToQualtrics();
+    }, 2000);
+
+    return () => {
+      if (autoReturnTimerRef.current) {
+        clearTimeout(autoReturnTimerRef.current as ReturnType<typeof setTimeout>);
+        autoReturnTimerRef.current = null;
+      }
+    };
+  }, [current, started]);
 
   if (showCover) {
     return (
@@ -547,7 +562,7 @@ export default function Home() {
           </p>
 
           <button
-            onClick={goBackToQuestionnaire}
+            onClick={() => void saveAndReturnToQualtrics()}
             disabled={isSubmitting}
             className="mt-8 px-8 py-3 rounded-2xl bg-white text-black font-medium hover:bg-gray-200 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
