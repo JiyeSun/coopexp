@@ -49,6 +49,13 @@ type SummaryRecord = {
   saved_at: string;
 };
 
+type ChatLogRecord = {
+  rid: string;
+  timestamp: string;
+  role: "user" | "assistant";
+  text: string;
+};
+
 type TimerHandle = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval> | null;
 
 export default function Home() {
@@ -91,7 +98,17 @@ export default function Home() {
   const currentTrialRef = useRef<TrialRecord | null>(null);
   const trialCommittedRef = useRef(false);
   const trialsRef = useRef<TrialRecord[]>([]);
+  const chatlogRef = useRef<ChatLogRecord[]>([]);
   const saveLockRef = useRef(false);
+
+  function appendChatLog(role: "user" | "assistant", text: string) {
+    chatlogRef.current.push({
+      rid,
+      timestamp: new Date().toISOString(),
+      role,
+      text,
+    });
+  }
 
   function clearTimer(ref: { current: TimerHandle }) {
     if (ref.current) {
@@ -282,7 +299,11 @@ export default function Home() {
     if (!text) return;
 
     const userMessage: Message = { sender: "user", text };
-    const botReply: Message = { sender: "bot", text: generateReply(text) };
+    const botText = generateReply(text);
+    const botReply: Message = { sender: "bot", text: botText };
+
+    appendChatLog("user", text);
+    appendChatLog("assistant", botText);
 
     setMessages((prev) => [...prev, userMessage, botReply]);
     setInput("");
@@ -365,6 +386,7 @@ export default function Home() {
         rid,
         summary_json: JSON.stringify(summary),
         trials_json: JSON.stringify(trialsRef.current),
+        chatlog_json: JSON.stringify(chatlogRef.current),
       });
 
       window.location.href = QUALTRICS_RETURN_URL;
@@ -398,14 +420,11 @@ export default function Home() {
       autoHelpPromptShownRef.current = true;
       pendingWrongPromptQuestionRef.current = null;
 
+      const promptText = hasManuallyOpenedAssistantRef.current ? shortHelpPromptText : originalHelpPromptText;
+
       setShowChat(true);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "bot",
-          text: hasManuallyOpenedAssistantRef.current ? shortHelpPromptText : originalHelpPromptText,
-        },
-      ]);
+      setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
+      appendChatLog("assistant", promptText);
     }
   }, [current, started]);
 
@@ -650,6 +669,8 @@ export default function Home() {
                 text: originalHelpPromptText,
               },
             ]);
+
+            appendChatLog("assistant", originalHelpPromptText);
           }
         }}
         className="fixed bottom-6 left-6 bg-black/80 backdrop-blur-md text-cyan-400 px-6 py-3 rounded-2xl border border-cyan-400 shadow-2xl tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
