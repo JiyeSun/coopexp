@@ -27,7 +27,7 @@ const shortHelpPromptText = "Do you want me to help you? Tell me which question 
 
 const QUALTRICS_RETURN_URL = "https://iu.co1.qualtrics.com/jfe/form/SV_2tvhb3IQU4w77Om";
 const GOOGLE_APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycby4zrkRJGVEIRmeLyQLT2cpUpdfX_ekeGnXGBMTxAqIkO-iru1eMD3qaYp2LNzfQIUp/exec";
+  "https://script.google.com/macros/s/AKfycbzpncarcbv8Ji22y8kHJdmg-wLbn4nlbDHUIH6781WwC8DZXO_DcdIoDL6hmvu1heaP/exec";
 
 type Message = { sender: "user" | "bot"; text: string };
 
