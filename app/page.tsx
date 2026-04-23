@@ -461,7 +461,6 @@ export default function Home() {
       clearTimer(advanceRef);
       clearTimer(answerTimeoutRef);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, started]);
 
   useEffect(() => {
@@ -628,6 +627,7 @@ export default function Home() {
 
       <img src={`/images/q${question.id}.png`} alt="question" className="mb-6 max-w-xl" />
 
+      {/* 更新后的 options UI */}
       <div className="grid grid-cols-6 gap-6">
         {generateOptions(question.id).map((option, index) => (
           <div key={index} className="relative">
@@ -635,20 +635,31 @@ export default function Home() {
               src={option}
               alt="option"
               onClick={() => handleAnswer(index)}
-              className={`w-24 h-24 object-contain transition ${
-                selectedIndex === index ? "ring-4 ring-cyan-400 scale-110" : "cursor-pointer hover:scale-105"
-              }`}
+              className={`w-24 h-24 object-contain transition duration-200
+                ${
+                  selectedIndex === index
+                    ? "ring-4 ring-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.9)] scale-110"
+                    : ""
+                }
+                ${
+                  selectedIndex === null
+                    ? "cursor-pointer hover:scale-105"
+                    : ""
+                }
+              `}
             />
 
+            {/* 正确 */}
             {selectedIndex === index && isCorrectSelection === true && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-green-500 text-6xl font-bold drop-shadow-lg">✓</span>
+              <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center rounded">
+                <span className="text-green-400 text-5xl font-bold">✓</span>
               </div>
             )}
 
+            {/* 错误 */}
             {selectedIndex === index && isCorrectSelection === false && (
-              <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center rounded">
-                <span className="text-red-600 text-7xl font-bold drop-shadow-lg">✕</span>
+              <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center rounded">
+                <span className="text-red-500 text-5xl font-bold">✖</span>
               </div>
             )}
           </div>
