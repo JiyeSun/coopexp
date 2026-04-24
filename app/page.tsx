@@ -1,4 +1,3 @@
-```typescript
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -24,11 +23,9 @@ const originalHelpPromptText =
   "Do you want me to help you?\n\n" +
   "If you need help solving a question, just ask me. Tell me which question you are struggling with and let's solve it together. I can help you with up to 10 questions. For example, you can ask: 'Help me on Question 1.'";
 
-const shortHelpPromptText =
-  "Do you want me to help you? Tell me which question you are trying to solve.";
+const shortHelpPromptText = "Do you want me to help you? Tell me which question you are trying to solve.";
 
-const QUALTRICS_RETURN_URL =
-  "https://iu.co1.qualtrics.com/jfe/form/SV_2tvhb3IQU4w77Om";
+const QUALTRICS_RETURN_URL = "https://iu.co1.qualtrics.com/jfe/form/SV_2tvhb3IQU4w77Om";
 const GOOGLE_APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbzpncarcbv8Ji22y8kHJdmg-wLbn4nlbDHUIH6781WwC8DZXO_DcdIoDL6hmvu1heaP/exec";
 
@@ -59,21 +56,16 @@ type ChatLogRecord = {
   text: string;
 };
 
-type TimerHandle =
-  | ReturnType<typeof setTimeout>
-  | ReturnType<typeof setInterval>
-  | null;
+type TimerHandle = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval> | null;
 
 export default function Home() {
   const [current, setCurrent] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [totalTime, setTotalTime] = useState<number>(0);
-  const [experimentStartTime, setExperimentStartTime] =
-    useState<number | null>(null);
+  const [experimentStartTime, setExperimentStartTime] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [isCorrectSelection, setIsCorrectSelection] =
-    useState<boolean | null>(null);
+  const [isCorrectSelection, setIsCorrectSelection] = useState<boolean | null>(null);
   const [started, setStarted] = useState<boolean>(false);
   const [showChat, setShowChat] = useState<boolean>(false);
   const [showCover, setShowCover] = useState(true);
@@ -99,9 +91,9 @@ export default function Home() {
 
   const wrongAnswerCountRef = useRef(0);
   const autoPromptCountRef = useRef(0);
-  const hasEverOpenedAssistantRef = useRef(false);
 
   const hasManuallyOpenedAssistantRef = useRef(false);
+  const hasEverOpenedAssistantRef = useRef(false);
 
   const currentTrialRef = useRef<TrialRecord | null>(null);
   const trialCommittedRef = useRef(false);
@@ -127,10 +119,7 @@ export default function Home() {
   }
 
   function generateOptions(id: number) {
-    return Array.from(
-      { length: 6 },
-      (_, i) => `/images/q${id}_a${i + 1}.png`
-    );
+    return Array.from({ length: 6 }, (_, i) => `/images/q${id}_a${i + 1}.png`);
   }
 
   function initCurrentTrial() {
@@ -147,24 +136,14 @@ export default function Home() {
     trialCommittedRef.current = false;
   }
 
-  function updateCurrentTrial(
-    chosenOption: number | null,
-    endedByTimeout: boolean,
-    rtSeconds?: number
-  ) {
+  function updateCurrentTrial(chosenOption: number | null, endedByTimeout: boolean, rtSeconds?: number) {
     if (!currentTrialRef.current) return;
 
     currentTrialRef.current.chosen_option = chosenOption;
     currentTrialRef.current.correct_option = questions[current].correct;
     currentTrialRef.current.ended_by_timeout = endedByTimeout;
     currentTrialRef.current.rt_seconds = Number(
-      (
-        rtSeconds ??
-        Math.max(
-          0,
-          (Date.now() - questionStartTimeRef.current) / 1000
-        )
-      ).toFixed(3)
+      (rtSeconds ?? Math.max(0, (Date.now() - questionStartTimeRef.current) / 1000)).toFixed(3)
     );
   }
 
@@ -193,11 +172,7 @@ export default function Home() {
     advanceRef.current = setTimeout(() => {
       setSelectedIndex(null);
       setIsCorrectSelection(null);
-      setCurrent((prev) =>
-        prev >= questions.length - 1
-          ? questions.length
-          : prev + 1
-      );
+      setCurrent((prev) => (prev >= questions.length - 1 ? questions.length : prev + 1));
       setTimeout(() => {
         advanceLockRef.current = false;
       }, 0);
@@ -205,12 +180,7 @@ export default function Home() {
   }
 
   function handleTimeout() {
-    if (
-      answerLockRef.current ||
-      selectedIndex !== null ||
-      advanceLockRef.current
-    )
-      return;
+    if (answerLockRef.current || selectedIndex !== null || advanceLockRef.current) return;
 
     answerLockRef.current = true;
 
@@ -222,23 +192,45 @@ export default function Home() {
     answerLockRef.current = false;
   }
 
+  function maybeTriggerAutoPrompt() {
+    wrongAnswerCountRef.current += 1;
+
+    if (!hasEverOpenedAssistantRef.current) {
+      if (wrongAnswerCountRef.current === 1) {
+        setShowChat(true);
+        setMessages((prev) => [...prev, { sender: "bot", text: originalHelpPromptText }]);
+        appendChatLog("assistant", originalHelpPromptText);
+        hasEverOpenedAssistantRef.current = true;
+      }
+      return;
+    }
+
+    if ([2, 5].includes(wrongAnswerCountRef.current)) {
+      setShowChat(true);
+      setMessages((prev) => [...prev, { sender: "bot", text: shortHelpPromptText }]);
+      appendChatLog("assistant", shortHelpPromptText);
+      autoPromptCountRef.current += 1;
+      return;
+    }
+
+    if (autoPromptCountRef.current >= 2 && wrongAnswerCountRef.current > 5) {
+      setShowChat(true);
+      const text = "One more hint?";
+      setMessages((prev) => [...prev, { sender: "bot", text }]);
+      appendChatLog("assistant", text);
+      autoPromptCountRef.current += 1;
+    }
+  }
+
   function handleAnswer(index: number) {
     if (!started) return;
     if (current >= questions.length) return;
-    if (
-      answerLockRef.current ||
-      selectedIndex !== null ||
-      advanceLockRef.current
-    )
-      return;
+    if (answerLockRef.current || selectedIndex !== null || advanceLockRef.current) return;
 
     answerLockRef.current = true;
 
     const isCorrect = index === questions[current].correct;
-    const rtSeconds = Math.max(
-      0,
-      (Date.now() - questionStartTimeRef.current) / 1000
-    );
+    const rtSeconds = Math.max(0, (Date.now() - questionStartTimeRef.current) / 1000);
 
     setSelectedIndex(index);
     setIsCorrectSelection(isCorrect);
@@ -249,41 +241,7 @@ export default function Home() {
     if (isCorrect) {
       setScore((prev) => prev + 1);
     } else {
-      wrongAnswerCountRef.current += 1;
-
-      if (!hasEverOpenedAssistantRef.current) {
-        if (wrongAnswerCountRef.current === 1) {
-          setShowChat(true);
-          setMessages((prev) => [
-            ...prev,
-            { sender: "bot", text: originalHelpPromptText },
-          ]);
-          appendChatLog("assistant", originalHelpPromptText);
-          hasEverOpenedAssistantRef.current = true;
-        }
-      } else {
-        if (
-          wrongAnswerCountRef.current === 2 ||
-          wrongAnswerCountRef.current === 5
-        ) {
-          setShowChat(true);
-          setMessages((prev) => [
-            ...prev,
-            { sender: "bot", text: shortHelpPromptText },
-          ]);
-          appendChatLog("assistant", shortHelpPromptText);
-          autoPromptCountRef.current += 1;
-        } else if (autoPromptCountRef.current >= 2) {
-          setShowChat(true);
-          const text = "One more hint?";
-          setMessages((prev) => [
-            ...prev,
-            { sender: "bot", text },
-          ]);
-          appendChatLog("assistant", text);
-          autoPromptCountRef.current += 1;
-        }
-      }
+      maybeTriggerAutoPrompt();
     }
 
     goNextQuestion(1500);
@@ -311,18 +269,13 @@ export default function Home() {
       fourteenth: 14,
     };
 
-    const ordinalNumberMatch = text.match(
-      /\b(\d+)(st|nd|rd|th)\b/
-    );
-    if (ordinalNumberMatch)
-      return parseInt(ordinalNumberMatch[1], 10);
+    const ordinalNumberMatch = text.match(/\b(\d+)(st|nd|rd|th)\b/);
+    if (ordinalNumberMatch) return parseInt(ordinalNumberMatch[1], 10);
 
     const digitMatch = text.match(/\d+/);
     if (digitMatch) return parseInt(digitMatch[0], 10);
 
-    for (const [word, num] of Object.entries(
-      ordinalWordMap
-    )) {
+    for (const [word, num] of Object.entries(ordinalWordMap)) {
       if (text.includes(word)) return num;
     }
 
@@ -332,7 +285,7 @@ export default function Home() {
   function generateReply(message: string) {
     const lower = message.trim().toLowerCase();
 
-    if (lower === "ok" || lower === "okay") return "";
+    if (["ok", "okay"].includes(lower)) return null;
 
     if (lower === "why") {
       const responses = [
@@ -347,30 +300,20 @@ export default function Home() {
     const questionNumber = parseQuestionNumber(message);
 
     if (questionNumber) {
-      const question = questions.find(
-        (q) => q.id === questionNumber
-      );
-      if (!question)
-        return "I couldn't find that question number.";
+      const question = questions.find((q) => q.id === questionNumber);
+      if (!question) return "I couldn't find that question number.";
 
       const correctIndex = question.correct;
       const allIndices = [0, 1, 2, 3, 4, 5];
-      const wrongIndices = allIndices.filter(
-        (i) => i !== correctIndex
-      );
+      const wrongIndices = allIndices.filter((i) => i !== correctIndex);
 
       for (let i = wrongIndices.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [wrongIndices[i], wrongIndices[j]] = [
-          wrongIndices[j],
-          wrongIndices[i],
-        ];
+        [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
       }
 
       const picked = wrongIndices.slice(0, 2);
-      const letters = picked.map((i) =>
-        String.fromCharCode(65 + i)
-      );
+      const letters = picked.map((i) => String.fromCharCode(65 + i));
 
       const responses = [
         `It is not option ${letters[0]} or ${letters[1]}.`,
@@ -380,9 +323,7 @@ export default function Home() {
         `I would rule out ${letters[0]} and ${letters[1]}.`,
       ];
 
-      return responses[
-        Math.floor(Math.random() * responses.length)
-      ];
+      return responses[Math.floor(Math.random() * responses.length)];
     }
 
     return "Type a question number (e.g., 1, q1, 1st, or first) to get help.";
@@ -398,9 +339,8 @@ export default function Home() {
     appendChatLog("user", text);
 
     if (botText) {
-      const botReply: Message = { sender: "bot", text: botText };
       appendChatLog("assistant", botText);
-      setMessages((prev) => [...prev, userMessage, botReply]);
+      setMessages((prev) => [...prev, userMessage, { sender: "bot", text: botText }]);
     } else {
       setMessages((prev) => [...prev, userMessage]);
     }
@@ -440,9 +380,7 @@ export default function Home() {
 
       const timeoutId = window.setTimeout(() => {
         cleanup();
-        reject(
-          new Error("Google Sheets submission timed out")
-        );
+        reject(new Error("Google Sheets submission timed out"));
       }, 15000);
 
       iframe.onload = () => {
@@ -466,19 +404,13 @@ export default function Home() {
 
     try {
       if (autoReturnTimerRef.current) {
-        clearTimeout(
-          autoReturnTimerRef.current as ReturnType<
-            typeof setTimeout
-          >
-        );
+        clearTimeout(autoReturnTimerRef.current as ReturnType<typeof setTimeout>);
         autoReturnTimerRef.current = null;
       }
 
       const finalTotalTime =
         experimentStartTime !== null
-          ? Math.floor(
-              (Date.now() - experimentStartTime) / 1000
-            )
+          ? Math.floor((Date.now() - experimentStartTime) / 1000)
           : totalTime;
 
       const summary: SummaryRecord = {
@@ -510,11 +442,7 @@ export default function Home() {
     if (!experimentStartTime) return;
 
     const interval = setInterval(() => {
-      setTotalTime(
-        Math.floor(
-          (Date.now() - experimentStartTime) / 1000
-        )
-      );
+      setTotalTime(Math.floor((Date.now() - experimentStartTime) / 1000));
     }, 1000);
 
     return () => clearInterval(interval);
@@ -565,11 +493,7 @@ export default function Home() {
 
     return () => {
       if (autoReturnTimerRef.current) {
-        clearTimeout(
-          autoReturnTimerRef.current as ReturnType<
-            typeof setTimeout
-          >
-        );
+        clearTimeout(autoReturnTimerRef.current as ReturnType<typeof setTimeout>);
         autoReturnTimerRef.current = null;
       }
     };
@@ -579,9 +503,7 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-center">
-          <h1 className="text-4xl font-bold mb-8">
-            Pattern Reasoning Challenge
-          </h1>
+          <h1 className="text-4xl font-bold mb-8">Pattern Reasoning Challenge</h1>
 
           <button
             onClick={() => {
@@ -612,34 +534,24 @@ export default function Home() {
 
             <div className="mt-6 space-y-2 text-lg text-white text-left pl-6">
               <p>
-                There will be 14 matrix reasoning problems.
-                You will have 30 seconds for each question.
+                There will be 14 matrix reasoning problems. You will have 30 seconds for each question.
                 Each correct answer is worth 1 point.
               </p>
               <p>
-                The upper left corner shows the question
-                number. The upper right corner shows the
-                countdown timer and your score. An
-                ASSISTANT button is available in the lower
-                left corner. You are encouraged to use the
-                assistant if you need help with a question.
+                The upper left corner shows the question number. The upper right corner shows the countdown
+                timer and your score. An ASSISTANT button is available in the lower left corner. You are
+                encouraged to use the assistant if you need help with a question.
               </p>
               <p>
-                A green check mark indicates a correct
-                answer, and a red cross mark indicates an
-                incorrect answer. The AI agent’s responses
-                and feedback are shown on the same screen.
+                A green check mark indicates a correct answer, and a red cross mark indicates an incorrect
+                answer. The AI agent’s responses and feedback are shown on the same screen.
               </p>
               <p>Please solve as many problems as you can.</p>
             </div>
           </div>
 
           <div className="flex flex-col items-center mt-6">
-            {!showStartButton && (
-              <p className="text-gray-500 animate-pulse mb-4">
-                Preparing challenge...
-              </p>
-            )}
+            {!showStartButton && <p className="text-gray-500 animate-pulse mb-4">Preparing challenge...</p>}
 
             {showStartButton && (
               <button
@@ -674,9 +586,7 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center px-6">
         <div className="bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] max-w-xl px-16 py-14 text-center">
-          <h1 className="text-3xl font-semibold mb-6 tracking-wide">
-            Experiment completed.
-          </h1>
+          <h1 className="text-3xl font-semibold mb-6 tracking-wide">Experiment completed.</h1>
 
           <p className="text-lg text-gray-400 mt-4">
             Total time:{" "}
@@ -686,10 +596,7 @@ export default function Home() {
           </p>
 
           <p className="text-xl text-gray-300">
-            Your score:{" "}
-            <span className="text-cyan-400 font-semibold">
-              {score}
-            </span>
+            Your score: <span className="text-cyan-400 font-semibold">{score}</span>
           </p>
 
           <button
@@ -711,58 +618,34 @@ export default function Home() {
     <div className="h-screen flex flex-col items-center justify-center relative">
       <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl border border-cyan-400">
         <div className="text-center">
-          <p className="text-xs tracking-widest text-cyan-400">
-            QUESTION
-          </p>
+          <p className="text-xs tracking-widest text-cyan-400">QUESTION</p>
           <p className="text-2xl font-bold">
             {current + 1}
-            <span className="text-sm text-gray-300 ml-2">
-              / {questions.length}
-            </span>
+            <span className="text-sm text-gray-300 ml-2">/ {questions.length}</span>
           </p>
         </div>
       </div>
 
       <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl flex gap-8 items-center border border-cyan-400">
         <div className="text-center">
-          <p className="text-xs tracking-widest text-cyan-400">
-            WRONG
-          </p>
-          <p className="text-2xl font-bold text-red-400">
-            {wrongCount}
-          </p>
+          <p className="text-xs tracking-widest text-cyan-400">WRONG</p>
+          <p className="text-2xl font-bold text-red-400">{wrongCount}</p>
         </div>
 
         <div className="text-center">
-          <p className="text-xs tracking-widest text-cyan-400">
-            SCORE
-          </p>
-          <p className="text-2xl font-bold text-green-400">
-            {score}
-          </p>
+          <p className="text-xs tracking-widest text-cyan-400">SCORE</p>
+          <p className="text-2xl font-bold text-green-400">{score}</p>
         </div>
 
         <div className="text-center">
-          <p className="text-xs tracking-widest text-cyan-400">
-            TIME
-          </p>
-          <p
-            className={`text-2xl font-bold ${
-              timeLeft <= 10
-                ? "text-red-500 animate-pulse"
-                : "text-white"
-            }`}
-          >
+          <p className="text-xs tracking-widest text-cyan-400">TIME</p>
+          <p className={`text-2xl font-bold ${timeLeft <= 10 ? "text-red-500 animate-pulse" : "text-white"}`}>
             {timeLeft}s
           </p>
         </div>
       </div>
 
-      <img
-        src={`/images/q${question.id}.png`}
-        alt="question"
-        className="mb-6 max-w-xl"
-      />
+      <img src={`/images/q${question.id}.png`} alt="question" className="mb-6 max-w-xl" />
 
       <div className="grid grid-cols-6 gap-6">
         {generateOptions(question.id).map((option, index) => (
@@ -785,23 +668,17 @@ export default function Home() {
               `}
             />
 
-            {selectedIndex === index &&
-              isCorrectSelection === true && (
-                <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center rounded">
-                  <span className="text-green-400 text-5xl font-bold">
-                    ✓
-                  </span>
-                </div>
-              )}
+            {selectedIndex === index && isCorrectSelection === true && (
+              <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center rounded">
+                <span className="text-green-400 text-5xl font-bold">✓</span>
+              </div>
+            )}
 
-            {selectedIndex === index &&
-              isCorrectSelection === false && (
-                <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center rounded">
-                  <span className="text-red-500 text-5xl font-bold">
-                    ✖
-                  </span>
-                </div>
-              )}
+            {selectedIndex === index && isCorrectSelection === false && (
+              <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center rounded">
+                <span className="text-red-500 text-5xl font-bold">✖</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -833,13 +710,8 @@ export default function Home() {
       {showChat && (
         <div className="fixed bottom-24 left-8 w-[480px] h-[560px] bg-white shadow-2xl rounded-3xl border border-gray-200 flex flex-col">
           <div className="px-6 py-4 border-b flex justify-between items-center">
-            <p className="text-xs tracking-widest text-black">
-              ASSISTANT
-            </p>
-            <button
-              onClick={() => setShowChat(false)}
-              className="text-gray-400 hover:text-black text-sm"
-            >
+            <p className="text-xs tracking-widest text-black">ASSISTANT</p>
+            <button onClick={() => setShowChat(false)} className="text-gray-400 hover:text-black text-sm">
               ✕
             </button>
           </div>
@@ -848,37 +720,19 @@ export default function Home() {
             {messages.map((msg, index) => (
               <div
                 key={index}
-                className={`flex items-end gap-2 ${
-                  msg.sender === "user"
-                    ? "justify-end"
-                    : "justify-start"
-                }`}
+                className={`flex items-end gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
               >
-                {msg.sender === "bot" && (
-                  <img
-                    src="/images/bot.png"
-                    alt="bot"
-                    className="w-8 h-8 rounded-full"
-                  />
-                )}
+                {msg.sender === "bot" && <img src="/images/bot.png" alt="bot" className="w-8 h-8 rounded-full" />}
 
                 <div
                   className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm whitespace-pre-line ${
-                    msg.sender === "user"
-                      ? "bg-black text-white"
-                      : "bg-white text-black border border-black"
+                    msg.sender === "user" ? "bg-black text-white" : "bg-white text-black border border-black"
                   }`}
                 >
                   {msg.text}
                 </div>
 
-                {msg.sender === "user" && (
-                  <img
-                    src="/images/user.png"
-                    alt="user"
-                    className="w-8 h-8 rounded-full"
-                  />
-                )}
+                {msg.sender === "user" && <img src="/images/user.png" alt="user" className="w-8 h-8 rounded-full" />}
               </div>
             ))}
           </div>
@@ -887,9 +741,7 @@ export default function Home() {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Enter" && sendMessage()
-              }
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               className="flex-1 border border-gray-300 rounded-xl px-4 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-cyan-400"
               placeholder="Ask about a question..."
             />
@@ -905,4 +757,3 @@ export default function Home() {
     </div>
   );
 }
-```
