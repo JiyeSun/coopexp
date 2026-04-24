@@ -90,10 +90,10 @@ export default function Home() {
   const questionStartTimeRef = useRef<number>(0);
 
   const wrongAnswerCountRef = useRef(0);
-  const pendingWrongPromptQuestionRef = useRef<number | null>(null);
+  const autoPromptCountRef = useRef(0);
 
   const hasManuallyOpenedAssistantRef = useRef(false);
-  const autoHelpPromptShownRef = useRef(false);
+  const hasEverOpenedAssistantRef = useRef(false);
 
   const currentTrialRef = useRef<TrialRecord | null>(null);
   const trialCommittedRef = useRef(false);
@@ -192,6 +192,36 @@ export default function Home() {
     answerLockRef.current = false;
   }
 
+  function maybeTriggerAutoPrompt() {
+    wrongAnswerCountRef.current += 1;
+
+    if (!hasEverOpenedAssistantRef.current) {
+      if (wrongAnswerCountRef.current === 1) {
+        setShowChat(true);
+        setMessages((prev) => [...prev, { sender: "bot", text: originalHelpPromptText }]);
+        appendChatLog("assistant", originalHelpPromptText);
+        hasEverOpenedAssistantRef.current = true;
+      }
+      return;
+    }
+
+    if ([2, 5].includes(wrongAnswerCountRef.current)) {
+      setShowChat(true);
+      setMessages((prev) => [...prev, { sender: "bot", text: shortHelpPromptText }]);
+      appendChatLog("assistant", shortHelpPromptText);
+      autoPromptCountRef.current += 1;
+      return;
+    }
+
+    if (autoPromptCountRef.current >= 2 && wrongAnswerCountRef.current > 5) {
+      setShowChat(true);
+      const text = "One more hint?";
+      setMessages((prev) => [...prev, { sender: "bot", text }]);
+      appendChatLog("assistant", text);
+      autoPromptCountRef.current += 1;
+    }
+  }
+
   function handleAnswer(index: number) {
     if (!started) return;
     if (current >= questions.length) return;
@@ -211,11 +241,7 @@ export default function Home() {
     if (isCorrect) {
       setScore((prev) => prev + 1);
     } else {
-      wrongAnswerCountRef.current += 1;
-
-      if (wrongAnswerCountRef.current === 2) {
-        pendingWrongPromptQuestionRef.current = current + 1;
-      }
+      maybeTriggerAutoPrompt();
     }
 
     goNextQuestion(1500);
@@ -244,14 +270,10 @@ export default function Home() {
     };
 
     const ordinalNumberMatch = text.match(/\b(\d+)(st|nd|rd|th)\b/);
-    if (ordinalNumberMatch) {
-      return parseInt(ordinalNumberMatch[1], 10);
-    }
+    if (ordinalNumberMatch) return parseInt(ordinalNumberMatch[1], 10);
 
     const digitMatch = text.match(/\d+/);
-    if (digitMatch) {
-      return parseInt(digitMatch[0], 10);
-    }
+    if (digitMatch) return parseInt(digitMatch[0], 10);
 
     for (const [word, num] of Object.entries(ordinalWordMap)) {
       if (text.includes(word)) return num;
@@ -261,6 +283,20 @@ export default function Home() {
   }
 
   function generateReply(message: string) {
+    const lower = message.trim().toLowerCase();
+
+    if (["ok", "okay"].includes(lower)) return null;
+
+    if (lower === "why") {
+      const responses = [
+        "Don’t ask why. I’ll just help you cut out some wrong options. You don’t have that much time.",
+        "No time for ‘why’. I’ll help you eliminate a few wrong ones.",
+        "Skip the why. Let’s narrow it down fast.",
+        "I won’t explain everything. I’ll just remove some bad options for you.",
+      ];
+      return responses[Math.floor(Math.random() * responses.length)];
+    }
+
     const questionNumber = parseQuestionNumber(message);
 
     if (questionNumber) {
@@ -299,12 +335,16 @@ export default function Home() {
 
     const userMessage: Message = { sender: "user", text };
     const botText = generateReply(text);
-    const botReply: Message = { sender: "bot", text: botText };
 
     appendChatLog("user", text);
-    appendChatLog("assistant", botText);
 
-    setMessages((prev) => [...prev, userMessage, botReply]);
+    if (botText) {
+      appendChatLog("assistant", botText);
+      setMessages((prev) => [...prev, userMessage, { sender: "bot", text: botText }]);
+    } else {
+      setMessages((prev) => [...prev, userMessage]);
+    }
+
     setInput("");
   }
 
@@ -357,25 +397,17 @@ export default function Home() {
     });
   }
 
-  async function submitWithRetry(payload: Record<string, string>, retries = 3) {
-    for (let i = 0; i < retries; i++) {
-      try {
-        await postToGoogleSheet(payload);
-        return true;
-      } catch {
-        if (i === retries - 1) return false;
-        await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
-      }
-    }
-    return false;
-  }
-
   async function saveAndReturnToQualtrics() {
     if (saveLockRef.current) return;
     saveLockRef.current = true;
     setIsSubmitting(true);
 
     try {
+      if (autoReturnTimerRef.current) {
+        clearTimeout(autoReturnTimerRef.current as ReturnType<typeof setTimeout>);
+        autoReturnTimerRef.current = null;
+      }
+
       const finalTotalTime =
         experimentStartTime !== null
           ? Math.floor((Date.now() - experimentStartTime) / 1000)
@@ -389,53 +421,21 @@ export default function Home() {
         saved_at: new Date().toISOString(),
       };
 
-      const backup = {
-        summary,
-        trials: trialsRef.current,
-        chatlog: chatlogRef.current,
-      };
-      localStorage.setItem(`backup_${rid}`, JSON.stringify(backup));
-
-      const success = await submitWithRetry({
+      await postToGoogleSheet({
         rid,
         summary_json: JSON.stringify(summary),
         trials_json: JSON.stringify(trialsRef.current),
         chatlog_json: JSON.stringify(chatlogRef.current),
       });
 
-      if (!success) {
-        alert("Submission failed. Please click again.");
-        saveLockRef.current = false;
-        setIsSubmitting(false);
-        return;
-      }
-
-      localStorage.removeItem(`backup_${rid}`);
       window.location.href = QUALTRICS_RETURN_URL;
     } catch (error) {
-      alert("Saving failed.");
+      console.error(error);
+      alert("Saving data failed. Please try again.");
       saveLockRef.current = false;
       setIsSubmitting(false);
     }
   }
-
-  useEffect(() => {
-    const backup = localStorage.getItem(`backup_${rid}`);
-    if (backup) {
-      console.warn("Found unsent backup data");
-    }
-  }, [rid]);
-
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (current >= questions.length && isSubmitting) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [current, isSubmitting]);
 
   useEffect(() => {
     if (!started || current >= questions.length) return;
@@ -447,6 +447,41 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, [started, experimentStartTime, current]);
+
+  useEffect(() => {
+    if (!started || current >= questions.length) return;
+
+    clearTimer(countdownRef);
+    clearTimer(advanceRef);
+    clearTimer(answerTimeoutRef);
+
+    answerLockRef.current = false;
+    advanceLockRef.current = false;
+
+    setTimeLeft(30);
+    questionStartTimeRef.current = Date.now();
+    setSelectedIndex(null);
+    setIsCorrectSelection(null);
+
+    initCurrentTrial();
+
+    countdownRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearTimer(countdownRef);
+          handleTimeout();
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearTimer(countdownRef);
+      clearTimer(advanceRef);
+      clearTimer(answerTimeoutRef);
+    };
+  }, [current, started]);
 
   useEffect(() => {
     if (!started) return;
@@ -469,11 +504,15 @@ export default function Home() {
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-center">
           <h1 className="text-4xl font-bold mb-8">Pattern Reasoning Challenge</h1>
+
           <button
             onClick={() => {
               setShowCover(false);
               setShowStartButton(false);
-              setTimeout(() => setShowStartButton(true), 25000);
+
+              setTimeout(() => {
+                setShowStartButton(true);
+              }, 25000);
             }}
             className="px-10 py-4 border border-cyan-400 text-cyan-400 rounded-2xl hover:bg-cyan-400 hover:text-black transition"
           >
@@ -487,20 +526,49 @@ export default function Home() {
   if (!started) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center px-6">
-        <div className="bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow max-w-2xl p-12 text-center">
-          <h1 className="text-4xl font-bold mb-4">RULES</h1>
-          <div className="mt-6 space-y-2 text-lg text-left">
-            <p>14 questions, 30s each.</p>
-            <p>Use assistant if needed.</p>
+        <div className="bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] max-w-2xl p-12 text-center">
+          <div className="text-center">
+            <div className="text-4xl font-bold mb-4">
+              <p>RULES</p>
+            </div>
+
+            <div className="mt-6 space-y-2 text-lg text-white text-left pl-6">
+              <p>
+                There will be 14 matrix reasoning problems. You will have 30 seconds for each question.
+                Each correct answer is worth 1 point.
+              </p>
+              <p>
+                The upper left corner shows the question number. The upper right corner shows the countdown
+                timer and your score. An ASSISTANT button is available in the lower left corner. You are
+                encouraged to use the assistant if you need help with a question.
+              </p>
+              <p>
+                A green check mark indicates a correct answer, and a red cross mark indicates an incorrect
+                answer. The AI agent’s responses and feedback are shown on the same screen.
+              </p>
+              <p>Please solve as many problems as you can.</p>
+            </div>
           </div>
-          <div className="mt-6">
+
+          <div className="flex flex-col items-center mt-6">
+            {!showStartButton && <p className="text-gray-500 animate-pulse mb-4">Preparing challenge...</p>}
+
             {showStartButton && (
               <button
                 onClick={() => {
+                  hasManuallyOpenedAssistantRef.current = false;
+                  hasEverOpenedAssistantRef.current = false;
+                  wrongAnswerCountRef.current = 0;
+                  autoPromptCountRef.current = 0;
+
+                  setMessages([]);
+                  setInput("");
+                  setShowChat(false);
+
                   setStarted(true);
                   setExperimentStartTime(Date.now());
                 }}
-                className="px-10 py-4 bg-black text-cyan-400 border border-cyan-400 rounded-2xl"
+                className="px-10 py-4 bg-black/80 backdrop-blur-md text-cyan-400 rounded-2xl border border-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.3)] tracking-widest text-lg hover:bg-cyan-400 hover:text-black transition-all duration-300"
               >
                 READY!
               </button>
@@ -512,14 +580,180 @@ export default function Home() {
   }
 
   if (current >= questions.length) {
+    const minutes = Math.floor(totalTime / 60);
+    const seconds = totalTime % 60;
+
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <button onClick={() => void saveAndReturnToQualtrics()} disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Back to Questionnaire"}
-        </button>
+      <div className="min-h-screen bg-black flex items-center justify-center px-6">
+        <div className="bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] max-w-xl px-16 py-14 text-center">
+          <h1 className="text-3xl font-semibold mb-6 tracking-wide">Experiment completed.</h1>
+
+          <p className="text-lg text-gray-400 mt-4">
+            Total time:{" "}
+            <span className="text-cyan-400 font-semibold">
+              {minutes}m {seconds}s
+            </span>
+          </p>
+
+          <p className="text-xl text-gray-300">
+            Your score: <span className="text-cyan-400 font-semibold">{score}</span>
+          </p>
+
+          <button
+            onClick={() => void saveAndReturnToQualtrics()}
+            disabled={isSubmitting}
+            className="mt-8 px-8 py-3 rounded-2xl bg-white text-black font-medium hover:bg-gray-200 transition disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? "Saving..." : "Back to Questionnaire"}
+          </button>
+        </div>
       </div>
     );
   }
 
-  return <div />;
+  const question = questions[current];
+  const wrongCount = Math.max(0, current - score);
+
+  return (
+    <div className="h-screen flex flex-col items-center justify-center relative">
+      <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl border border-cyan-400">
+        <div className="text-center">
+          <p className="text-xs tracking-widest text-cyan-400">QUESTION</p>
+          <p className="text-2xl font-bold">
+            {current + 1}
+            <span className="text-sm text-gray-300 ml-2">/ {questions.length}</span>
+          </p>
+        </div>
+      </div>
+
+      <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl flex gap-8 items-center border border-cyan-400">
+        <div className="text-center">
+          <p className="text-xs tracking-widest text-cyan-400">WRONG</p>
+          <p className="text-2xl font-bold text-red-400">{wrongCount}</p>
+        </div>
+
+        <div className="text-center">
+          <p className="text-xs tracking-widest text-cyan-400">SCORE</p>
+          <p className="text-2xl font-bold text-green-400">{score}</p>
+        </div>
+
+        <div className="text-center">
+          <p className="text-xs tracking-widest text-cyan-400">TIME</p>
+          <p className={`text-2xl font-bold ${timeLeft <= 10 ? "text-red-500 animate-pulse" : "text-white"}`}>
+            {timeLeft}s
+          </p>
+        </div>
+      </div>
+
+      <img src={`/images/q${question.id}.png`} alt="question" className="mb-6 max-w-xl" />
+
+      <div className="grid grid-cols-6 gap-6">
+        {generateOptions(question.id).map((option, index) => (
+          <div key={index} className="relative">
+            <img
+              src={option}
+              alt="option"
+              onClick={() => handleAnswer(index)}
+              className={`w-24 h-24 object-contain transition duration-200
+                ${
+                  selectedIndex === index
+                    ? "ring-4 ring-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.9)] scale-110"
+                    : ""
+                }
+                ${
+                  selectedIndex === null
+                    ? "cursor-pointer hover:scale-105"
+                    : ""
+                }
+              `}
+            />
+
+            {selectedIndex === index && isCorrectSelection === true && (
+              <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center rounded">
+                <span className="text-green-400 text-5xl font-bold">✓</span>
+              </div>
+            )}
+
+            {selectedIndex === index && isCorrectSelection === false && (
+              <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center rounded">
+                <span className="text-red-500 text-5xl font-bold">✖</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => {
+          setShowChat(true);
+          hasEverOpenedAssistantRef.current = true;
+
+          if (!hasManuallyOpenedAssistantRef.current) {
+            hasManuallyOpenedAssistantRef.current = true;
+
+            setMessages((prev) => [
+              ...prev,
+              {
+                sender: "bot",
+                text: originalHelpPromptText,
+              },
+            ]);
+
+            appendChatLog("assistant", originalHelpPromptText);
+          }
+        }}
+        className="fixed bottom-6 left-6 bg-black/80 backdrop-blur-md text-cyan-400 px-6 py-3 rounded-2xl border border-cyan-400 shadow-2xl tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
+      >
+        ASSISTANT
+      </button>
+
+      {showChat && (
+        <div className="fixed bottom-24 left-8 w-[480px] h-[560px] bg-white shadow-2xl rounded-3xl border border-gray-200 flex flex-col">
+          <div className="px-6 py-4 border-b flex justify-between items-center">
+            <p className="text-xs tracking-widest text-black">ASSISTANT</p>
+            <button onClick={() => setShowChat(false)} className="text-gray-400 hover:text-black text-sm">
+              ✕
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex items-end gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+              >
+                {msg.sender === "bot" && <img src="/images/bot.png" alt="bot" className="w-8 h-8 rounded-full" />}
+
+                <div
+                  className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm whitespace-pre-line ${
+                    msg.sender === "user" ? "bg-black text-white" : "bg-white text-black border border-black"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+
+                {msg.sender === "user" && <img src="/images/user.png" alt="user" className="w-8 h-8 rounded-full" />}
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t px-5 py-4 flex gap-3">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              className="flex-1 border border-gray-300 rounded-xl px-4 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              placeholder="Ask about a question..."
+            />
+            <button
+              onClick={sendMessage}
+              className="px-5 bg-gray-900 text-white rounded-xl text-sm hover:bg-black transition"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
