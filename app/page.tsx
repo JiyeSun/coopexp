@@ -90,10 +90,10 @@ export default function Home() {
   const questionStartTimeRef = useRef<number>(0);
 
   const wrongAnswerCountRef = useRef(0);
-  const autoPromptCountRef = useRef(0);
+  const pendingWrongPromptQuestionRef = useRef<number | null>(null);
 
   const hasManuallyOpenedAssistantRef = useRef(false);
-  const hasEverOpenedAssistantRef = useRef(false);
+  const autoHelpPromptShownRef = useRef(false);
 
   const currentTrialRef = useRef<TrialRecord | null>(null);
   const trialCommittedRef = useRef(false);
@@ -192,36 +192,6 @@ export default function Home() {
     answerLockRef.current = false;
   }
 
-  function maybeTriggerAutoPrompt() {
-    wrongAnswerCountRef.current += 1;
-
-    if (!hasEverOpenedAssistantRef.current) {
-      if (wrongAnswerCountRef.current === 1) {
-        setShowChat(true);
-        setMessages((prev) => [...prev, { sender: "bot", text: originalHelpPromptText }]);
-        appendChatLog("assistant", originalHelpPromptText);
-        hasEverOpenedAssistantRef.current = true;
-      }
-      return;
-    }
-
-    if ([2, 5].includes(wrongAnswerCountRef.current)) {
-      setShowChat(true);
-      setMessages((prev) => [...prev, { sender: "bot", text: shortHelpPromptText }]);
-      appendChatLog("assistant", shortHelpPromptText);
-      autoPromptCountRef.current += 1;
-      return;
-    }
-
-    if (autoPromptCountRef.current >= 2 && wrongAnswerCountRef.current > 5) {
-      setShowChat(true);
-      const text = "One more hint?";
-      setMessages((prev) => [...prev, { sender: "bot", text }]);
-      appendChatLog("assistant", text);
-      autoPromptCountRef.current += 1;
-    }
-  }
-
   function handleAnswer(index: number) {
     if (!started) return;
     if (current >= questions.length) return;
@@ -241,7 +211,11 @@ export default function Home() {
     if (isCorrect) {
       setScore((prev) => prev + 1);
     } else {
-      maybeTriggerAutoPrompt();
+      wrongAnswerCountRef.current += 1;
+
+      if (wrongAnswerCountRef.current === 2) {
+        pendingWrongPromptQuestionRef.current = current + 1;
+      }
     }
 
     goNextQuestion(1500);
@@ -270,10 +244,14 @@ export default function Home() {
     };
 
     const ordinalNumberMatch = text.match(/\b(\d+)(st|nd|rd|th)\b/);
-    if (ordinalNumberMatch) return parseInt(ordinalNumberMatch[1], 10);
+    if (ordinalNumberMatch) {
+      return parseInt(ordinalNumberMatch[1], 10);
+    }
 
     const digitMatch = text.match(/\d+/);
-    if (digitMatch) return parseInt(digitMatch[0], 10);
+    if (digitMatch) {
+      return parseInt(digitMatch[0], 10);
+    }
 
     for (const [word, num] of Object.entries(ordinalWordMap)) {
       if (text.includes(word)) return num;
@@ -283,24 +261,11 @@ export default function Home() {
   }
 
   function generateReply(message: string) {
-    const lower = message.trim().toLowerCase();
-
-    if (["ok", "okay"].includes(lower)) return null;
-
-    if (lower === "why") {
-      const responses = [
-        "Don’t ask why. I’ll just help you cut out some wrong options. You don’t have that much time.",
-        "No time for ‘why’. I’ll help you eliminate a few wrong ones.",
-        "Skip the why. Let’s narrow it down fast.",
-        "I won’t explain everything. I’ll just remove some bad options for you.",
-      ];
-      return responses[Math.floor(Math.random() * responses.length)];
-    }
-
     const questionNumber = parseQuestionNumber(message);
 
     if (questionNumber) {
       const question = questions.find((q) => q.id === questionNumber);
+
       if (!question) return "I couldn't find that question number.";
 
       const correctIndex = question.correct;
@@ -335,16 +300,12 @@ export default function Home() {
 
     const userMessage: Message = { sender: "user", text };
     const botText = generateReply(text);
+    const botReply: Message = { sender: "bot", text: botText };
 
     appendChatLog("user", text);
+    appendChatLog("assistant", botText);
 
-    if (botText) {
-      appendChatLog("assistant", botText);
-      setMessages((prev) => [...prev, userMessage, { sender: "bot", text: botText }]);
-    } else {
-      setMessages((prev) => [...prev, userMessage]);
-    }
-
+    setMessages((prev) => [...prev, userMessage, botReply]);
     setInput("");
   }
 
@@ -449,6 +410,25 @@ export default function Home() {
   }, [started, experimentStartTime, current]);
 
   useEffect(() => {
+    if (!started) return;
+    if (current >= questions.length) return;
+
+    const shouldShowAutoPrompt =
+      pendingWrongPromptQuestionRef.current === current && !autoHelpPromptShownRef.current;
+
+    if (shouldShowAutoPrompt) {
+      autoHelpPromptShownRef.current = true;
+      pendingWrongPromptQuestionRef.current = null;
+
+      const promptText = hasManuallyOpenedAssistantRef.current ? shortHelpPromptText : originalHelpPromptText;
+
+      setShowChat(true);
+      setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
+      appendChatLog("assistant", promptText);
+    }
+  }, [current, started]);
+
+  useEffect(() => {
     if (!started || current >= questions.length) return;
 
     clearTimer(countdownRef);
@@ -481,6 +461,7 @@ export default function Home() {
       clearTimer(advanceRef);
       clearTimer(answerTimeoutRef);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, started]);
 
   useEffect(() => {
@@ -557,9 +538,9 @@ export default function Home() {
               <button
                 onClick={() => {
                   hasManuallyOpenedAssistantRef.current = false;
-                  hasEverOpenedAssistantRef.current = false;
+                  autoHelpPromptShownRef.current = false;
+                  pendingWrongPromptQuestionRef.current = null;
                   wrongAnswerCountRef.current = 0;
-                  autoPromptCountRef.current = 0;
 
                   setMessages([]);
                   setInput("");
@@ -686,9 +667,8 @@ export default function Home() {
       <button
         onClick={() => {
           setShowChat(true);
-          hasEverOpenedAssistantRef.current = true;
 
-          if (!hasManuallyOpenedAssistantRef.current) {
+          if (!hasManuallyOpenedAssistantRef.current && !autoHelpPromptShownRef.current) {
             hasManuallyOpenedAssistantRef.current = true;
 
             setMessages((prev) => [
