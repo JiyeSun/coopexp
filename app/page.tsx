@@ -1,4 +1,3 @@
-```tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -25,7 +24,6 @@ const originalHelpPromptText =
   "If you need help solving a question, just ask me. Tell me which question you are struggling with and let's solve it together. I can help you with up to 10 questions. For example, you can ask: 'Help me on Question 1.'";
 
 const shortHelpPromptText = "Do you want me to help you? Tell me which question you are trying to solve.";
-const finalHelpPromptText = "One more hint?";
 
 const QUALTRICS_RETURN_URL = "https://iu.co1.qualtrics.com/jfe/form/SV_2tvhb3IQU4w77Om";
 const GOOGLE_APPS_SCRIPT_URL =
@@ -76,8 +74,6 @@ export default function Home() {
   const [input, setInput] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const chatEndRef = useRef<HTMLDivElement | null>(null);
-
   const [rid] = useState<string>(() => {
     if (typeof window === "undefined") return "";
     return new URLSearchParams(window.location.search).get("rid") ?? "";
@@ -93,23 +89,17 @@ export default function Home() {
 
   const questionStartTimeRef = useRef<number>(0);
 
-  const wrongCountRef = useRef(0);
+  const wrongAnswerCountRef = useRef(0);
   const pendingWrongPromptQuestionRef = useRef<number | null>(null);
-  const hasEverShownAssistantRef = useRef(false);
 
   const hasManuallyOpenedAssistantRef = useRef(false);
+  const autoHelpPromptShownRef = useRef(false);
 
   const currentTrialRef = useRef<TrialRecord | null>(null);
   const trialCommittedRef = useRef(false);
   const trialsRef = useRef<TrialRecord[]>([]);
   const chatlogRef = useRef<ChatLogRecord[]>([]);
   const saveLockRef = useRef(false);
-
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
 
   function appendChatLog(role: "user" | "assistant", text: string) {
     chatlogRef.current.push({
@@ -221,16 +211,10 @@ export default function Home() {
     if (isCorrect) {
       setScore((prev) => prev + 1);
     } else {
-      wrongCountRef.current += 1;
+      wrongAnswerCountRef.current += 1;
 
-      if (!hasEverShownAssistantRef.current) {
-        if (wrongCountRef.current === 1) {
-          pendingWrongPromptQuestionRef.current = current + 1;
-        }
-      } else {
-        if (wrongCountRef.current === 2 || wrongCountRef.current === 5) {
-          pendingWrongPromptQuestionRef.current = current + 1;
-        }
+      if (wrongAnswerCountRef.current === 2) {
+        pendingWrongPromptQuestionRef.current = current + 1;
       }
     }
 
@@ -325,31 +309,122 @@ export default function Home() {
     setInput("");
   }
 
+  function postToGoogleSheet(payload: Record<string, string>) {
+    return new Promise<void>((resolve, reject) => {
+      const iframeName = `gs-submit-frame-${Date.now()}`;
+
+      const iframe = document.createElement("iframe");
+      iframe.name = iframeName;
+      iframe.style.display = "none";
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = GOOGLE_APPS_SCRIPT_URL;
+      form.target = iframeName;
+      form.style.display = "none";
+
+      Object.entries(payload).forEach(([key, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      });
+
+      let submitted = false;
+
+      const cleanup = () => {
+        window.clearTimeout(timeoutId);
+        form.remove();
+        iframe.remove();
+      };
+
+      const timeoutId = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("Google Sheets submission timed out"));
+      }, 15000);
+
+      iframe.onload = () => {
+        if (!submitted) return;
+        cleanup();
+        resolve();
+      };
+
+      document.body.appendChild(iframe);
+      document.body.appendChild(form);
+
+      submitted = true;
+      form.submit();
+    });
+  }
+
+  async function saveAndReturnToQualtrics() {
+    if (saveLockRef.current) return;
+    saveLockRef.current = true;
+    setIsSubmitting(true);
+
+    try {
+      if (autoReturnTimerRef.current) {
+        clearTimeout(autoReturnTimerRef.current as ReturnType<typeof setTimeout>);
+        autoReturnTimerRef.current = null;
+      }
+
+      const finalTotalTime =
+        experimentStartTime !== null
+          ? Math.floor((Date.now() - experimentStartTime) / 1000)
+          : totalTime;
+
+      const summary: SummaryRecord = {
+        rid,
+        total_score: score,
+        total_time_seconds: finalTotalTime,
+        n_trials: trialsRef.current.length,
+        saved_at: new Date().toISOString(),
+      };
+
+      await postToGoogleSheet({
+        rid,
+        summary_json: JSON.stringify(summary),
+        trials_json: JSON.stringify(trialsRef.current),
+        chatlog_json: JSON.stringify(chatlogRef.current),
+      });
+
+      window.location.href = QUALTRICS_RETURN_URL;
+    } catch (error) {
+      console.error(error);
+      alert("Saving data failed. Please try again.");
+      saveLockRef.current = false;
+      setIsSubmitting(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!started || current >= questions.length) return;
+    if (!experimentStartTime) return;
+
+    const interval = setInterval(() => {
+      setTotalTime(Math.floor((Date.now() - experimentStartTime) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [started, experimentStartTime, current]);
+
   useEffect(() => {
     if (!started) return;
     if (current >= questions.length) return;
 
     const shouldShowAutoPrompt =
-      pendingWrongPromptQuestionRef.current === current;
+      pendingWrongPromptQuestionRef.current === current && !autoHelpPromptShownRef.current;
 
     if (shouldShowAutoPrompt) {
+      autoHelpPromptShownRef.current = true;
       pendingWrongPromptQuestionRef.current = null;
 
-      let promptText = originalHelpPromptText;
-
-      if (hasEverShownAssistantRef.current) {
-        if (wrongCountRef.current === 5) {
-          promptText = finalHelpPromptText;
-        } else {
-          promptText = shortHelpPromptText;
-        }
-      }
+      const promptText = hasManuallyOpenedAssistantRef.current ? shortHelpPromptText : originalHelpPromptText;
 
       setShowChat(true);
       setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
       appendChatLog("assistant", promptText);
-
-      hasEverShownAssistantRef.current = true;
     }
   }, [current, started]);
 
@@ -405,135 +480,260 @@ export default function Home() {
     };
   }, [current, started]);
 
-  function postToGoogleSheet(payload: Record<string, string>) {
-    return new Promise<void>((resolve, reject) => {
-      const iframeName = `gs-submit-frame-${Date.now()}`;
-      const iframe = document.createElement("iframe");
-      iframe.name = iframeName;
-      iframe.style.display = "none";
+  if (showCover) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-center">
+          <h1 className="text-4xl font-bold mb-8">Pattern Reasoning Challenge</h1>
 
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = GOOGLE_APPS_SCRIPT_URL;
-      form.target = iframeName;
-      form.style.display = "none";
+          <button
+            onClick={() => {
+              setShowCover(false);
+              setShowStartButton(false);
 
-      Object.entries(payload).forEach(([key, value]) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = value;
-        form.appendChild(input);
-      });
-
-      let submitted = false;
-
-      const cleanup = () => {
-        window.clearTimeout(timeoutId);
-        form.remove();
-        iframe.remove();
-      };
-
-      const timeoutId = window.setTimeout(() => {
-        cleanup();
-        reject(new Error("Google Sheets submission timed out"));
-      }, 15000);
-
-      iframe.onload = () => {
-        if (!submitted) return;
-        cleanup();
-        resolve();
-      };
-
-      document.body.appendChild(iframe);
-      document.body.appendChild(form);
-
-      submitted = true;
-      form.submit();
-    });
+              setTimeout(() => {
+                setShowStartButton(true);
+              }, 25000);
+            }}
+            className="px-10 py-4 border border-cyan-400 text-cyan-400 rounded-2xl hover:bg-cyan-400 hover:text-black transition"
+          >
+            BEGIN
+          </button>
+        </div>
+      </div>
+    );
   }
 
-  async function saveAndReturnToQualtrics() {
-    if (saveLockRef.current) return;
-    saveLockRef.current = true;
-    setIsSubmitting(true);
+  if (!started) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-6">
+        <div className="bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] max-w-2xl p-12 text-center">
+          <div className="text-center">
+            <div className="text-4xl font-bold mb-4">
+              <p>RULES</p>
+            </div>
 
-    try {
-      if (autoReturnTimerRef.current) {
-        clearTimeout(autoReturnTimerRef.current);
-        autoReturnTimerRef.current = null;
-      }
+            <div className="mt-6 space-y-2 text-lg text-white text-left pl-6">
+              <p>
+                There will be 14 matrix reasoning problems. You will have 30 seconds for each question.
+                Each correct answer is worth 1 point.
+              </p>
+              <p>
+                The upper left corner shows the question number. The upper right corner shows the countdown
+                timer and your score. An ASSISTANT button is available in the lower left corner. You are
+                encouraged to use the assistant if you need help with a question.
+              </p>
+              <p>
+                A green check mark indicates a correct answer, and a red cross mark indicates an incorrect
+                answer. The AI agent’s responses and feedback are shown on the same screen.
+              </p>
+              <p>Please solve as many problems as you can.</p>
+            </div>
+          </div>
 
-      const finalTotalTime =
-        experimentStartTime !== null
-          ? Math.floor((Date.now() - experimentStartTime) / 1000)
-          : totalTime;
+          <div className="flex flex-col items-center mt-6">
+            {!showStartButton && <p className="text-gray-500 animate-pulse mb-4">Preparing challenge...</p>}
 
-      const summary: SummaryRecord = {
-        rid,
-        total_score: score,
-        total_time_seconds: finalTotalTime,
-        n_trials: trialsRef.current.length,
-        saved_at: new Date().toISOString(),
-      };
+            {showStartButton && (
+              <button
+                onClick={() => {
+                  hasManuallyOpenedAssistantRef.current = false;
+                  autoHelpPromptShownRef.current = false;
+                  pendingWrongPromptQuestionRef.current = null;
+                  wrongAnswerCountRef.current = 0;
 
-      await postToGoogleSheet({
-        rid,
-        summary_json: JSON.stringify(summary),
-        trials_json: JSON.stringify(trialsRef.current),
-        chatlog_json: JSON.stringify(chatlogRef.current),
-      });
+                  setMessages([]);
+                  setInput("");
+                  setShowChat(false);
 
-      window.location.href = QUALTRICS_RETURN_URL;
-    } catch (error) {
-      console.error(error);
-      alert("Saving data failed. Please try again.");
-      saveLockRef.current = false;
-      setIsSubmitting(false);
-    }
+                  setStarted(true);
+                  setExperimentStartTime(Date.now());
+                }}
+                className="px-10 py-4 bg-black/80 backdrop-blur-md text-cyan-400 rounded-2xl border border-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.3)] tracking-widest text-lg hover:bg-cyan-400 hover:text-black transition-all duration-300"
+              >
+                READY!
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
+
+  if (current >= questions.length) {
+    const minutes = Math.floor(totalTime / 60);
+    const seconds = totalTime % 60;
+
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-6">
+        <div className="bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] max-w-xl px-16 py-14 text-center">
+          <h1 className="text-3xl font-semibold mb-6 tracking-wide">Experiment completed.</h1>
+
+          <p className="text-lg text-gray-400 mt-4">
+            Total time:{" "}
+            <span className="text-cyan-400 font-semibold">
+              {minutes}m {seconds}s
+            </span>
+          </p>
+
+          <p className="text-xl text-gray-300">
+            Your score: <span className="text-cyan-400 font-semibold">{score}</span>
+          </p>
+
+          <button
+            onClick={() => void saveAndReturnToQualtrics()}
+            disabled={isSubmitting}
+            className="mt-8 px-8 py-3 rounded-2xl bg-white text-black font-medium hover:bg-gray-200 transition disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? "Saving..." : "Back to Questionnaire"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const question = questions[current];
+  const wrongCount = Math.max(0, current - score);
 
   return (
     <div className="h-screen flex flex-col items-center justify-center relative">
-      <img src={`/images/q${questions[current].id}.png`} className="mb-6 max-w-xl" />
+      <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl border border-cyan-400">
+        <div className="text-center">
+          <p className="text-xs tracking-widest text-cyan-400">QUESTION</p>
+          <p className="text-2xl font-bold">
+            {current + 1}
+            <span className="text-sm text-gray-300 ml-2">/ {questions.length}</span>
+          </p>
+        </div>
+      </div>
+
+      <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl flex gap-8 items-center border border-cyan-400">
+        <div className="text-center">
+          <p className="text-xs tracking-widest text-cyan-400">WRONG</p>
+          <p className="text-2xl font-bold text-red-400">{wrongCount}</p>
+        </div>
+
+        <div className="text-center">
+          <p className="text-xs tracking-widest text-cyan-400">SCORE</p>
+          <p className="text-2xl font-bold text-green-400">{score}</p>
+        </div>
+
+        <div className="text-center">
+          <p className="text-xs tracking-widest text-cyan-400">TIME</p>
+          <p className={`text-2xl font-bold ${timeLeft <= 10 ? "text-red-500 animate-pulse" : "text-white"}`}>
+            {timeLeft}s
+          </p>
+        </div>
+      </div>
+
+      <img src={`/images/q${question.id}.png`} alt="question" className="mb-6 max-w-xl" />
+
+      <div className="grid grid-cols-6 gap-6">
+        {generateOptions(question.id).map((option, index) => (
+          <div key={index} className="relative">
+            <img
+              src={option}
+              alt="option"
+              onClick={() => handleAnswer(index)}
+              className={`w-24 h-24 object-contain transition duration-200
+                ${
+                  selectedIndex === index
+                    ? "ring-4 ring-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.9)] scale-110"
+                    : ""
+                }
+                ${
+                  selectedIndex === null
+                    ? "cursor-pointer hover:scale-105"
+                    : ""
+                }
+              `}
+            />
+
+            {selectedIndex === index && isCorrectSelection === true && (
+              <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center rounded">
+                <span className="text-green-400 text-5xl font-bold">✓</span>
+              </div>
+            )}
+
+            {selectedIndex === index && isCorrectSelection === false && (
+              <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center rounded">
+                <span className="text-red-500 text-5xl font-bold">✖</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
 
       <button
         onClick={() => {
           setShowChat(true);
-          hasEverShownAssistantRef.current = true;
 
-          if (!hasManuallyOpenedAssistantRef.current) {
+          if (!hasManuallyOpenedAssistantRef.current && !autoHelpPromptShownRef.current) {
             hasManuallyOpenedAssistantRef.current = true;
 
             setMessages((prev) => [
               ...prev,
-              { sender: "bot", text: originalHelpPromptText },
+              {
+                sender: "bot",
+                text: originalHelpPromptText,
+              },
             ]);
 
             appendChatLog("assistant", originalHelpPromptText);
           }
         }}
+        className="fixed bottom-6 left-6 bg-black/80 backdrop-blur-md text-cyan-400 px-6 py-3 rounded-2xl border border-cyan-400 shadow-2xl tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
       >
         ASSISTANT
       </button>
 
       {showChat && (
-        <div className="fixed bottom-24 left-8 w-[480px] h-[560px] bg-white flex flex-col">
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            {messages.map((msg, i) => (
-              <div key={i}>{msg.text}</div>
-            ))}
-            <div ref={chatEndRef} />
+        <div className="fixed bottom-24 left-8 w-[480px] h-[560px] bg-white shadow-2xl rounded-3xl border border-gray-200 flex flex-col">
+          <div className="px-6 py-4 border-b flex justify-between items-center">
+            <p className="text-xs tracking-widest text-black">ASSISTANT</p>
+            <button onClick={() => setShowChat(false)} className="text-gray-400 hover:text-black text-sm">
+              ✕
+            </button>
           </div>
 
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          />
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex items-end gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+              >
+                {msg.sender === "bot" && <img src="/images/bot.png" alt="bot" className="w-8 h-8 rounded-full" />}
+
+                <div
+                  className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm whitespace-pre-line ${
+                    msg.sender === "user" ? "bg-black text-white" : "bg-white text-black border border-black"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+
+                {msg.sender === "user" && <img src="/images/user.png" alt="user" className="w-8 h-8 rounded-full" />}
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t px-5 py-4 flex gap-3">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              className="flex-1 border border-gray-300 rounded-xl px-4 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              placeholder="Ask about a question..."
+            />
+            <button
+              onClick={sendMessage}
+              className="px-5 bg-gray-900 text-white rounded-xl text-sm hover:bg-black transition"
+            >
+              Send
+            </button>
+          </div>
         </div>
       )}
     </div>
   );
 }
-```
