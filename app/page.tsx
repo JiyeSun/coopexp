@@ -461,6 +461,7 @@ export default function Home() {
       clearTimer(advanceRef);
       clearTimer(answerTimeoutRef);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, started]);
 
   useEffect(() => {
@@ -627,7 +628,6 @@ export default function Home() {
 
       <img src={`/images/q${question.id}.png`} alt="question" className="mb-6 max-w-xl" />
 
-      {/* 更新后的 options UI */}
       <div className="grid grid-cols-6 gap-6">
         {generateOptions(question.id).map((option, index) => (
           <div key={index} className="relative">
@@ -649,14 +649,12 @@ export default function Home() {
               `}
             />
 
-            {/* 正确 */}
             {selectedIndex === index && isCorrectSelection === true && (
               <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center rounded">
                 <span className="text-green-400 text-5xl font-bold">✓</span>
               </div>
             )}
 
-            {/* 错误 */}
             {selectedIndex === index && isCorrectSelection === false && (
               <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center rounded">
                 <span className="text-red-500 text-5xl font-bold">✖</span>
