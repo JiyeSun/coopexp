@@ -503,14 +503,6 @@ export default function Home() {
     void saveAndReturnToQualtrics();
   }, [current, started]);
 
-    return () => {
-      if (autoReturnTimerRef.current) {
-        clearTimeout(autoReturnTimerRef.current as ReturnType<typeof setTimeout>);
-        autoReturnTimerRef.current = null;
-      }
-    };
-  }, [current, started]);
-
   if (showCover) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
