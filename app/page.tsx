@@ -54,6 +54,10 @@ type ChatLogRecord = {
   timestamp: string;
   role: "user" | "assistant";
   text: string;
+
+  trigger_source?: "manual" | "auto";
+  prompt_type?: "long" | "short";
+  trigger_index?: number;
 };
 
 type TimerHandle = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval> | null;
@@ -93,7 +97,6 @@ export default function Home() {
   const pendingWrongPromptQuestionRef = useRef<number | null>(null);
 
   const hasManuallyOpenedAssistantRef = useRef(false);
-  const autoHelpPromptShownRef = useRef(false);
 
   const currentTrialRef = useRef<TrialRecord | null>(null);
   const trialCommittedRef = useRef(false);
@@ -103,12 +106,21 @@ export default function Home() {
   
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-  function appendChatLog(role: "user" | "assistant", text: string) {
+  const assistantTriggerCountRef = useRef(0); 
+  const wrongSinceLastPromptRef = useRef(0); 
+  const hasShownLongPromptRef = useRef(false);
+  
+  function appendChatLog(
+    role: "user" | "assistant",
+    text: string,
+    extra?: Partial<ChatLogRecord>
+  ) {
     chatlogRef.current.push({
       rid,
       timestamp: new Date().toISOString(),
       role,
       text,
+      ...extra,
     });
   }
 
@@ -214,9 +226,22 @@ export default function Home() {
       setScore((prev) => prev + 1);
     } else {
       wrongAnswerCountRef.current += 1;
-
-      if (wrongAnswerCountRef.current === 2) {
+      wrongSinceLastPromptRef.current += 1;
+      
+      if (assistantTriggerCountRef.current >= 4) {
+        return;
+      }
+    
+      if (!hasShownLongPromptRef.current) {
         pendingWrongPromptQuestionRef.current = current + 1;
+        hasShownLongPromptRef.current = true;
+        assistantTriggerCountRef.current += 1;
+        wrongSinceLastPromptRef.current = 0;
+      } 
+      else if (wrongSinceLastPromptRef.current >= 2) {
+        pendingWrongPromptQuestionRef.current = current + 1;
+        assistantTriggerCountRef.current += 1;
+        wrongSinceLastPromptRef.current = 0;
       }
     }
 
@@ -444,16 +469,18 @@ export default function Home() {
   useEffect(() => {
     if (!started) return;
     if (current >= questions.length) return;
-
+  
     const shouldShowAutoPrompt =
-      pendingWrongPromptQuestionRef.current === current && !autoHelpPromptShownRef.current;
-
+      pendingWrongPromptQuestionRef.current === current;
+  
     if (shouldShowAutoPrompt) {
-      autoHelpPromptShownRef.current = true;
       pendingWrongPromptQuestionRef.current = null;
-
-      const promptText = hasManuallyOpenedAssistantRef.current ? shortHelpPromptText : originalHelpPromptText;
-
+  
+      const promptText =
+        assistantTriggerCountRef.current === 1
+          ? originalHelpPromptText
+          : shortHelpPromptText;
+  
       setShowChat(true);
       setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
       appendChatLog("assistant", promptText);
@@ -561,9 +588,11 @@ export default function Home() {
               <button
                 onClick={() => {
                   hasManuallyOpenedAssistantRef.current = false;
-                  autoHelpPromptShownRef.current = false;
                   pendingWrongPromptQuestionRef.current = null;
                   wrongAnswerCountRef.current = 0;
+                  assistantTriggerCountRef.current = 0;
+                  wrongSinceLastPromptRef.current = 0;
+                  hasShownLongPromptRef.current = false;
 
                   setMessages([]);
                   setInput("");
@@ -697,9 +726,14 @@ export default function Home() {
         onClick={() => {
           setShowChat(true);
 
-          if (!hasManuallyOpenedAssistantRef.current && !autoHelpPromptShownRef.current) {
+          if (!hasShownLongPromptRef.current && assistantTriggerCountRef.current < 4) {
             hasManuallyOpenedAssistantRef.current = true;
+            hasShownLongPromptRef.current = true;
+            assistantTriggerCountRef.current += 1;
+            wrongSinceLastPromptRef.current = 0;
 
+            pendingWrongPromptQuestionRef.current = null;
+          
             setMessages((prev) => [
               ...prev,
               {
@@ -707,7 +741,7 @@ export default function Home() {
                 text: originalHelpPromptText,
               },
             ]);
-
+          
             appendChatLog("assistant", originalHelpPromptText);
           }
         }}
