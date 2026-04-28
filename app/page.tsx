@@ -499,10 +499,9 @@ export default function Home() {
   useEffect(() => {
     if (!started) return;
     if (current < questions.length) return;
-
-    autoReturnTimerRef.current = setTimeout(() => {
-      void saveAndReturnToQualtrics();
-    }, 2000);
+  
+    void saveAndReturnToQualtrics();
+  }, [current, started]);
 
     return () => {
       if (autoReturnTimerRef.current) {
@@ -612,14 +611,20 @@ export default function Home() {
             Your score: <span className="text-cyan-400 font-semibold">{score}</span>
           </p>
 
-          <button
-            onClick={() => void saveAndReturnToQualtrics()}
-            disabled={isSubmitting}
-            className="mt-8 px-8 py-3 rounded-2xl bg-white text-black font-medium hover:bg-gray-200 transition disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Saving..." : "Back to Questionnaire"}
-          </button>
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <div className="flex items-center gap-3 text-cyan-400">
+              <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-lg font-medium tracking-wide">
+                Saving your data...
+              </span>
+            </div>
+          
+            <p className="text-sm text-gray-400">
+              Please wait, you will be redirected automatically.
+            </p>
+          </div>
         </div>
+        
       </div>
     );
   }
