@@ -23,7 +23,11 @@ const originalHelpPromptText =
   "Do you want me to help you?\n\n" +
   "If you need help solving a question, just ask me. Tell me which question you are struggling with and let's solve it together. I can help you with up to 10 questions. For example, you can ask: 'Help me on Question 1.'";
 
-const shortHelpPromptText = "Do you want me to help you? Tell me which question you are trying to solve.";
+const shortHelpPromptTexts = [
+  "Do you want me to help you? Tell me which question you are trying to solve.",
+  "One more hint?",
+  "Any help?",
+];
 
 const QUALTRICS_RETURN_URL = "https://iu.co1.qualtrics.com/jfe/form/SV_2tvhb3IQU4w77Om";
 const GOOGLE_APPS_SCRIPT_URL =
