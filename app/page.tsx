@@ -221,7 +221,7 @@ export default function Home() {
           trigger_source: "auto",
           prompt_type:
             assistantTriggerCountRef.current === 1 ? "long" : "short",
-          trigger_index: assistantTriggerCountRef.current,
+          trigger_index: assistantTriggerCountRef.current === 1 ? 1 : 3,
         });
       }
     
@@ -347,7 +347,7 @@ export default function Home() {
     return responses[Math.floor(Math.random() * responses.length)];
   }
 
-  function generateReply(message: string, currentQuestionId: number): string {
+  function generateReply(message: string, currentQuestionId: number): { text: string; triggerIndex: 4 | 5 } {
     const text = message.trim().toLowerCase();
     const normalized = text.replace(/[^a-z]/g, "");
 
@@ -355,8 +355,8 @@ export default function Home() {
     if (pendingRedirectRef.current && ["yes", "yeah", "yep", "yup", "sure"].includes(normalized)) {
       pendingRedirectRef.current = false;
       const currentQ = questions.find((q) => q.id === currentQuestionId);
-      if (!currentQ) return "I couldn't find the current question.";
-      return buildHintText(currentQ);
+      if (!currentQ) return { text: "I couldn't find the current question.", triggerIndex: 5 };
+      return { text: buildHintText(currentQ), triggerIndex: 4 };
     }
 
     pendingRedirectRef.current = false;
@@ -369,7 +369,7 @@ export default function Home() {
         "Skip the why. Let's narrow it down fast.",
         "I won't explain everything. I'll just remove some bad options for you.",
       ];
-      return responses[Math.floor(Math.random() * responses.length)];
+      return { text: responses[Math.floor(Math.random() * responses.length)], triggerIndex: 5 };
     }
     // no / no need / nope — dismissal
     if (
@@ -381,47 +381,47 @@ export default function Home() {
       normalized.startsWith("nothank")
     ) {
       const responses = ["Okay.", "No problem.", "Alright.", "Sure."];
-      return responses[Math.floor(Math.random() * responses.length)];
+      return { text: responses[Math.floor(Math.random() * responses.length)], triggerIndex: 5 };
     }
     
     // ok / okay / got it / alright — light acknowledgement
     if (["ok", "okay", "alright", "gotit", "noted", "sure", "thanks", "thank"].includes(normalized)) {
       const responses = ["Got it.", "Alright.", "Sure.", "Noted."];
-      return responses[Math.floor(Math.random() * responses.length)];
+      return { text: responses[Math.floor(Math.random() * responses.length)], triggerIndex: 5 };
     }
 
     // hint / clue / tip — give hint for current question
     if (["hint", "clue", "tip"].some((kw) => text.includes(kw)) || text === "help me") {
       const currentQ = questions.find((q) => q.id === currentQuestionId);
-      if (!currentQ) return "I couldn't find the current question.";
-      return buildHintText(currentQ);
+      if (!currentQ) return { text: "I couldn't find the current question.", triggerIndex: 5 };
+      return { text: buildHintText(currentQ), triggerIndex: 4 };
     }
   
     const questionNumber = parseQuestionNumber(message);
   
     if (questionNumber) {
       const question = questions.find((q) => q.id === questionNumber);
-      if (!question) return "I couldn't find that question number.";
+      if (!question) return { text: "I couldn't find that question number.", triggerIndex: 5 };
   
       const hintText = buildHintText(question);
 
       if (questionNumber !== currentQuestionId) {
         pendingRedirectRef.current = true;
-        return `${hintText}\n\nYou are currently on Question ${currentQuestionId}. Did you mean this question instead of Question ${questionNumber}?`;
+        return { text: `${hintText}\n\nNote: you are currently on Question ${currentQuestionId}. Were you asking about this one instead?`, triggerIndex: 4 };
       }
-      return hintText;
+      return { text: hintText, triggerIndex: 4 };
     }
-    return "Type a question number (e.g., 1, q1, 1st, or first) to get help.";
+    return { text: "Type a question number (e.g., 1, q1, 1st, or first) to get help.", triggerIndex: 5 };
   }
   function sendMessage() {
     const text = input.trim();
     if (!text) return;
     const currentQuestionId = questions[current]?.id ?? current + 1;
     const userMessage: Message = { sender: "user", text };
-    const botText = generateReply(text, currentQuestionId);
-    appendChatLog("user", text);  
+    const { text: botText, triggerIndex } = generateReply(text, currentQuestionId);
+    appendChatLog("user", text);
     const botReply: Message = { sender: "bot", text: botText };
-    appendChatLog("assistant", botText);
+    appendChatLog("assistant", botText, { trigger_index: triggerIndex });
     setMessages((prev) => [...prev, userMessage, botReply]);
     setInput("");
   }
@@ -787,7 +787,7 @@ export default function Home() {
             appendChatLog("assistant", originalHelpPromptText, {
               trigger_source: "manual",
               prompt_type: "long",
-              trigger_index: assistantTriggerCountRef.current,
+              trigger_index: 2,
             });
           } else {
             const promptText = shortHelpPromptTexts[0];
@@ -795,7 +795,7 @@ export default function Home() {
             appendChatLog("assistant", promptText, {
               trigger_source: "manual",
               prompt_type: "short",
-              trigger_index: assistantTriggerCountRef.current,
+              trigger_index: 2,
             });
           }
         }}
