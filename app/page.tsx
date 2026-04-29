@@ -110,9 +110,10 @@ export default function Home() {
   
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-  const assistantTriggerCountRef = useRef(0); 
-  const wrongSinceLastPromptRef = useRef(0); 
+  const assistantTriggerCountRef = useRef(0);
+  const wrongSinceLastPromptRef = useRef(0);
   const hasShownLongPromptRef = useRef(false);
+  const pendingRedirectRef = useRef(false);
   
   function appendChatLog(
     role: "user" | "assistant",
@@ -324,76 +325,94 @@ export default function Home() {
 
     return null;
   }
-  function generateReply(message: string) {
-    const text = message.trim().toLowerCase();
   
+  function buildHintText(question: { id: number; correct: number }): string {
+    const correctIndex = question.correct;
+    const allIndices = [0, 1, 2, 3, 4, 5];
+    const wrongIndices = allIndices.filter((i) => i !== correctIndex);
+
+    for (let i = wrongIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
+    }
+
+    const picked = wrongIndices.slice(0, 2);
+    const letters = picked.map((i) => String.fromCharCode(65 + i));
+
+    const responses = [
+      `It is not option ${letters[0]} or ${letters[1]}.`,
+      `You can eliminate ${letters[0]} and ${letters[1]}.`,
+      `${letters[0]} and ${letters[1]} are definitely incorrect.`,
+      `Try avoiding ${letters[0]} and ${letters[1]}.`,
+      `I would rule out ${letters[0]} and ${letters[1]}.`,
+    ];
+
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  function generateReply(message: string, currentQuestionId: number): string {
+    const text = message.trim().toLowerCase();
+    const normalized = text.replace(/[^a-z]/g, "");
+
+    // yes — follow up on a pending redirect
+    if (pendingRedirectRef.current && ["yes", "yeah", "yep", "yup", "sure"].includes(normalized)) {
+      pendingRedirectRef.current = false;
+      const currentQ = questions.find((q) => q.id === currentQuestionId);
+      if (!currentQ) return "I couldn't find the current question.";
+      return buildHintText(currentQ);
+    }
+
+    pendingRedirectRef.current = false;
+
     // why
     if (text === "why") {
       const responses = [
-        "Don’t ask why. I’ll just help you cut out some wrong options. You don’t have that much time.",
-        "No time for ‘why’. I’ll help you eliminate a few wrong ones.",
-        "Skip the why. Let’s narrow it down fast.",
-        "I won’t explain everything. I’ll just remove some bad options for you."
+        "Don't ask why. I'll just help you cut out some wrong options. You don't have that much time.",
+        "No time for 'why'. I'll help you eliminate a few wrong ones.",
+        "Skip the why. Let's narrow it down fast.",
+        "I won't explain everything. I'll just remove some bad options for you.",
       ];
       return responses[Math.floor(Math.random() * responses.length)];
     }
   
-    // ok / okay
-    if (["ok", "okay"].includes(text.replace(/[^a-z]/g, ""))) {
-      return null;
+    // ok / okay / got it / alright — light acknowledgement
+    if (["ok", "okay", "alright", "gotit", "noted", "sure", "thanks", "thank"].includes(normalized)) {
+      const responses = ["Got it.", "Alright.", "Sure.", "Noted."];
+      return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    // hint / clue / tip — give hint for current question
+    if (["hint", "clue", "tip"].some((kw) => text.includes(kw)) || text === "help me") {
+      const currentQ = questions.find((q) => q.id === currentQuestionId);
+      if (!currentQ) return "I couldn't find the current question.";
+      return buildHintText(currentQ);
     }
   
     const questionNumber = parseQuestionNumber(message);
   
     if (questionNumber) {
       const question = questions.find((q) => q.id === questionNumber);
-  
       if (!question) return "I couldn't find that question number.";
   
-      const correctIndex = question.correct;
-      const allIndices = [0, 1, 2, 3, 4, 5];
-      const wrongIndices = allIndices.filter((i) => i !== correctIndex);
-  
-      for (let i = wrongIndices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
+      const hintText = buildHintText(question);
+
+      if (questionNumber !== currentQuestionId) {
+        pendingRedirectRef.current = true;
+        return `${hintText}\n\nYou are currently on Question ${currentQuestionId}. Did you mean this question instead of Question ${questionNumber}?`;
       }
-  
-      const picked = wrongIndices.slice(0, 2);
-      const letters = picked.map((i) => String.fromCharCode(65 + i));
-  
-      const responses = [
-        `It is not option ${letters[0]} or ${letters[1]}.`,
-        `You can eliminate ${letters[0]} and ${letters[1]}.`,
-        `${letters[0]} and ${letters[1]} are definitely incorrect.`,
-        `Try avoiding ${letters[0]} and ${letters[1]}.`,
-        `I would rule out ${letters[0]} and ${letters[1]}.`,
-      ];
-  
-      return responses[Math.floor(Math.random() * responses.length)];
+      return hintText;
     }
-  
     return "Type a question number (e.g., 1, q1, 1st, or first) to get help.";
   }
   function sendMessage() {
     const text = input.trim();
     if (!text) return;
-  
+    const currentQuestionId = questions[current]?.id ?? current + 1;
     const userMessage: Message = { sender: "user", text };
-    const botText = generateReply(text);
-  
-    appendChatLog("user", text);
-  
-    if (botText === null) {
-      setMessages((prev) => [...prev, userMessage]);
-      setInput("");
-      return;
-    }
-  
+    const botText = generateReply(text, currentQuestionId);
+    appendChatLog("user", text);  
     const botReply: Message = { sender: "bot", text: botText };
-  
     appendChatLog("assistant", botText);
-  
     setMessages((prev) => [...prev, userMessage, botReply]);
     setInput("");
   }
