@@ -305,7 +305,7 @@ export default function Home() {
     }
   
     // ok / okay
-    if (text === "ok" || text === "okay") {
+    if (["ok", "okay"].includes(text.replace(/[^a-z]/g, ""))) {
       return null;
     }
   
@@ -479,11 +479,19 @@ export default function Home() {
   
     if (shouldShowAutoPrompt) {
       pendingWrongPromptQuestionRef.current = null;
-  
-      const promptText =
-        assistantTriggerCountRef.current === 1
-          ? originalHelpPromptText
-          : shortHelpPromptText;
+      
+      let promptText;
+
+      if (assistantTriggerCountRef.current === 1) {
+        promptText = originalHelpPromptText;
+      } else if (assistantTriggerCountRef.current === 2) {
+        // 第二次仍用原来的短提示（可选，看你设计）
+        promptText = shortHelpPromptTexts[0];
+      } else {
+        // 第三、第四次随机
+        const randomIndex = Math.floor(Math.random() * (shortHelpPromptTexts.length - 1)) + 1;
+        promptText = shortHelpPromptTexts[randomIndex];
+      }
   
       setShowChat(true);
       setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
