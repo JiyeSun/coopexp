@@ -267,22 +267,19 @@ export default function Home() {
       wrongSinceLastPromptRef.current += 1;
       
       if (assistantTriggerCountRef.current >= 4) {
-        wrongSinceLastPromptRef.current = 0; 
-        return;
-      }
-    
-      if (!hasShownLongPromptRef.current) {
+        wrongSinceLastPromptRef.current = 0;
+      } else if (!hasShownLongPromptRef.current) {
         pendingWrongPromptQuestionRef.current = current + 1;
         hasShownLongPromptRef.current = true;
         assistantTriggerCountRef.current += 1;
         wrongSinceLastPromptRef.current = 0;
-      } 
-      else if (wrongSinceLastPromptRef.current >= 2) {
+      } else if (wrongSinceLastPromptRef.current >= 2) {
         pendingWrongPromptQuestionRef.current = current + 1;
         assistantTriggerCountRef.current += 1;
         wrongSinceLastPromptRef.current = 0;
       }
     }
+    
 
     goNextQuestion(1500);
 
@@ -374,7 +371,19 @@ export default function Home() {
       ];
       return responses[Math.floor(Math.random() * responses.length)];
     }
-  
+    // no / no need / nope — dismissal
+    if (
+      normalized === "no" ||
+      normalized === "nope" ||
+      normalized === "nah" ||
+      normalized.startsWith("noneed") ||
+      normalized.startsWith("nothanks") ||
+      normalized.startsWith("nothank")
+    ) {
+      const responses = ["Okay.", "No problem.", "Alright.", "Sure."];
+      return responses[Math.floor(Math.random() * responses.length)];
+    }
+    
     // ok / okay / got it / alright — light acknowledgement
     if (["ok", "okay", "alright", "gotit", "noted", "sure", "thanks", "thank"].includes(normalized)) {
       const responses = ["Got it.", "Alright.", "Sure.", "Noted."];
@@ -766,24 +775,26 @@ export default function Home() {
       
           hasManuallyOpenedAssistantRef.current = true;
       
-          if (assistantTriggerCountRef.current < 4) {
+          if (assistantTriggerCountRef.current >= 4) return;
+
+          pendingWrongPromptQuestionRef.current = null;
+          assistantTriggerCountRef.current += 1;
+          wrongSinceLastPromptRef.current = 0;
+          
+          if (!hasShownLongPromptRef.current) {
             hasShownLongPromptRef.current = true;
-            assistantTriggerCountRef.current += 1;
-            wrongSinceLastPromptRef.current = 0;
-      
-            pendingWrongPromptQuestionRef.current = null;
-      
-            setMessages((prev) => [
-              ...prev,
-              {
-                sender: "bot",
-                text: originalHelpPromptText,
-              },
-            ]);
-      
+            setMessages((prev) => [...prev, { sender: "bot", text: originalHelpPromptText }]);
             appendChatLog("assistant", originalHelpPromptText, {
               trigger_source: "manual",
               prompt_type: "long",
+              trigger_index: assistantTriggerCountRef.current,
+            });
+          } else {
+            const promptText = shortHelpPromptTexts[0];
+            setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
+            appendChatLog("assistant", promptText, {
+              trigger_source: "manual",
+              prompt_type: "short",
               trigger_index: assistantTriggerCountRef.current,
             });
           }
