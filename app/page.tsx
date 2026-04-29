@@ -483,7 +483,11 @@ export default function Home() {
   
       setShowChat(true);
       setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
-      appendChatLog("assistant", promptText);
+      appendChatLog("assistant", promptText, {
+        trigger_source: "auto",
+        prompt_type: assistantTriggerCountRef.current === 1 ? "long" : "short",
+        trigger_index: assistantTriggerCountRef.current,
+      });
     }
   }, [current, started]);
 
@@ -742,7 +746,11 @@ export default function Home() {
               },
             ]);
           
-            appendChatLog("assistant", originalHelpPromptText);
+            appendChatLog("assistant", originalHelpPromptText, {
+              trigger_source: "manual",
+              prompt_type: "long",
+              trigger_index: assistantTriggerCountRef.current,
+            });
           }
         }}
         className="fixed bottom-6 left-6 bg-black/80 backdrop-blur-md text-cyan-400 px-6 py-3 rounded-2xl border border-cyan-400 shadow-2xl tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
