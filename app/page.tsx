@@ -233,6 +233,7 @@ export default function Home() {
       wrongSinceLastPromptRef.current += 1;
       
       if (assistantTriggerCountRef.current >= 4) {
+        wrongSinceLastPromptRef.current = 0; 
         return;
       }
     
