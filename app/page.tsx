@@ -608,11 +608,10 @@ export default function Home() {
               <p>
                 The upper left corner shows the question number. The upper right corner shows the countdown
                 timer and your score. An ASSISTANT button is available in the lower left corner. You are
-                encouraged to use the assistant if you need help with a question.
+                encouraged to use the assistant if you need help with a question. It helps you eliminate two incorrect options each time.
               </p>
               <p>
-                A green check mark indicates a correct answer, and a red cross mark indicates an incorrect
-                answer. The AI agent’s responses and feedback are shown on the same screen.
+                Immediate feedback is provided after each selection: a green check mark indicates a correct answer, and a red cross indicates an incorrect one.
               </p>
               <p>Please solve as many problems as you can.</p>
             </div>
