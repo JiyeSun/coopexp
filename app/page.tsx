@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const questions = [
-  { id: 1, correct: 0 },
+  { id: 1, correct: 1 },
   { id: 2, correct: 3 },
   { id: 3, correct: 4 },
   { id: 4, correct: 5 },
