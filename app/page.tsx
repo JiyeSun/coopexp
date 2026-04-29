@@ -743,18 +743,18 @@ export default function Home() {
       <button
         onClick={() => {
           setShowChat(true);
-        
+      
           if (hasManuallyOpenedAssistantRef.current) return;
-        
+      
           hasManuallyOpenedAssistantRef.current = true;
-        
+      
           if (assistantTriggerCountRef.current < 4) {
             hasShownLongPromptRef.current = true;
             assistantTriggerCountRef.current += 1;
             wrongSinceLastPromptRef.current = 0;
-        
+      
             pendingWrongPromptQuestionRef.current = null;
-        
+      
             setMessages((prev) => [
               ...prev,
               {
@@ -762,15 +762,7 @@ export default function Home() {
                 text: originalHelpPromptText,
               },
             ]);
-        
-            appendChatLog("assistant", originalHelpPromptText, {
-              trigger_source: "manual",
-              prompt_type: "long",
-              trigger_index: assistantTriggerCountRef.current,
-            });
-          }
-        }}
-          
+      
             appendChatLog("assistant", originalHelpPromptText, {
               trigger_source: "manual",
               prompt_type: "long",
