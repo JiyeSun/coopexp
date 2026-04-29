@@ -238,7 +238,21 @@ export default function Home() {
 
     updateCurrentTrial(null, true);
     commitCurrentTrial();
-
+    wrongAnswerCountRef.current += 1;
+    wrongSinceLastPromptRef.current += 1;
+    
+    if (assistantTriggerCountRef.current >= 4) {
+      wrongSinceLastPromptRef.current = 0;
+    } else if (!hasShownLongPromptRef.current) {
+      pendingWrongPromptQuestionRef.current = current + 1;
+      hasShownLongPromptRef.current = true;
+      assistantTriggerCountRef.current += 1;
+      wrongSinceLastPromptRef.current = 0;
+    } else if (wrongSinceLastPromptRef.current >= 2) {
+      pendingWrongPromptQuestionRef.current = current + 1;
+      assistantTriggerCountRef.current += 1;
+      wrongSinceLastPromptRef.current = 0;
+    }
     goNextQuestion(0);
 
     answerLockRef.current = false;
