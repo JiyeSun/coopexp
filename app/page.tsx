@@ -190,7 +190,40 @@ export default function Home() {
     advanceRef.current = setTimeout(() => {
       setSelectedIndex(null);
       setIsCorrectSelection(null);
-      setCurrent((prev) => (prev >= questions.length - 1 ? questions.length : prev + 1));
+    
+      const nextQuestion = current + 1;
+    
+      setCurrent((prev) =>
+        prev >= questions.length - 1 ? questions.length : prev + 1
+      );
+    
+      // 👇 在这里直接判断
+      if (pendingWrongPromptQuestionRef.current === nextQuestion) {
+        pendingWrongPromptQuestionRef.current = null;
+    
+        let promptText;
+    
+        if (assistantTriggerCountRef.current === 1) {
+          promptText = originalHelpPromptText;
+        } else if (assistantTriggerCountRef.current === 2) {
+          promptText = shortHelpPromptTexts[0];
+        } else {
+          const randomIndex =
+            Math.floor(Math.random() * (shortHelpPromptTexts.length - 1)) + 1;
+          promptText = shortHelpPromptTexts[randomIndex];
+        }
+    
+        setShowChat(true);
+        setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
+    
+        appendChatLog("assistant", promptText, {
+          trigger_source: "auto",
+          prompt_type:
+            assistantTriggerCountRef.current === 1 ? "long" : "short",
+          trigger_index: assistantTriggerCountRef.current,
+        });
+      }
+    
       setTimeout(() => {
         advanceLockRef.current = false;
       }, 0);
@@ -471,38 +504,6 @@ export default function Home() {
     }
   }, [messages, showChat]);
 
-  useEffect(() => {
-    if (!started) return;
-    if (current >= questions.length) return;
-  
-    const shouldShowAutoPrompt =
-      pendingWrongPromptQuestionRef.current === current;
-  
-    if (shouldShowAutoPrompt) {
-      pendingWrongPromptQuestionRef.current = null;
-      
-      let promptText;
-
-      if (assistantTriggerCountRef.current === 1) {
-        promptText = originalHelpPromptText;
-      } else if (assistantTriggerCountRef.current === 2) {
-        // 第二次仍用原来的短提示（可选，看你设计）
-        promptText = shortHelpPromptTexts[0];
-      } else {
-        // 第三、第四次随机
-        const randomIndex = Math.floor(Math.random() * (shortHelpPromptTexts.length - 1)) + 1;
-        promptText = shortHelpPromptTexts[randomIndex];
-      }
-  
-      setShowChat(true);
-      setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
-      appendChatLog("assistant", promptText, {
-        trigger_source: "auto",
-        prompt_type: assistantTriggerCountRef.current === 1 ? "long" : "short",
-        trigger_index: assistantTriggerCountRef.current,
-      });
-    }
-  }, [current, started]);
 
   useEffect(() => {
     if (!started || current >= questions.length) return;
