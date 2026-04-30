@@ -819,7 +819,7 @@ export default function Home() {
       </button>
 
       {showChat && (
-        <div className="fixed bottom-24 left-8 w-[480px] h-[560px] bg-white shadow-2xl rounded-3xl border border-gray-200 flex flex-col">
+        <div className="fixed bottom-24 left-8 w-[400px] h-[560px] bg-white shadow-2xl rounded-3xl border border-gray-200 flex flex-col">
           <div className="px-6 py-4 border-b flex justify-between items-center">
             <p className="text-xs tracking-widest text-black">ASSISTANT</p>
             <button onClick={() => setShowChat(false)} className="text-gray-400 hover:text-black text-sm">
