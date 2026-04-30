@@ -24,8 +24,9 @@ const originalHelpPromptText =
 
 const shortHelpPromptTexts = [
   "Do you want me to help you? Tell me which question you are trying to solve.",
-  "One more hint?",
+  "I can give you a hint!",
   "Any help?",
+  "One more hint?",
 ];
 
 const QUALTRICS_RETURN_URL = "https://iu.co1.qualtrics.com/jfe/form/SV_2tvhb3IQU4w77Om";
@@ -196,13 +197,7 @@ export default function Home() {
     
         let promptText;
     
-        if (assistantTriggerCountRef.current <= 2) {
-          promptText = shortHelpPromptTexts[0];
-        } else {
-          const randomIndex =
-            Math.floor(Math.random() * (shortHelpPromptTexts.length - 1)) + 1;
-          promptText = shortHelpPromptTexts[randomIndex];
-        }
+        promptText = shortHelpPromptTexts[assistantTriggerCountRef.current - 1];
         setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
     
         appendChatLog("assistant", promptText);
