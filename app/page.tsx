@@ -642,7 +642,7 @@ export default function Home() {
                   wrongAnswerCountRef.current = 0;
                   assistantTriggerCountRef.current = 0;
                   wrongSinceLastPromptRef.current = 0;
-                  hasShownLongPromptRef.current = false;
+                  hasShownLongPromptRef.current = true;
 
                   setMessages([{ sender: "bot", text: originalHelpPromptText }]);
                   setInput("");
