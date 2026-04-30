@@ -57,10 +57,6 @@ type ChatLogRecord = {
   timestamp: string;
   role: "user" | "assistant";
   text: string;
-
-  trigger_source?: "manual" | "auto";
-  prompt_type?: "long" | "short";
-  trigger_index?: number;
 };
 
 type TimerHandle = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval> | null;
@@ -115,15 +111,13 @@ export default function Home() {
   
   function appendChatLog(
     role: "user" | "assistant",
-    text: string,
-    extra?: Partial<ChatLogRecord>
+    text: string
   ) {
     chatlogRef.current.push({
       rid,
       timestamp: new Date().toISOString(),
       role,
       text,
-      ...extra,
     });
   }
 
@@ -211,11 +205,7 @@ export default function Home() {
         }
         setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
     
-        appendChatLog("assistant", promptText, {
-          trigger_source: "auto",
-          prompt_type:"short",
-          trigger_index: 3,
-        });
+        appendChatLog("assistant", promptText);
       }
     
       setTimeout(() => {
@@ -425,7 +415,7 @@ export default function Home() {
     const { text: botText, triggerIndex } = generateReply(text, currentQuestionId);
     appendChatLog("user", text);
     const botReply: Message = { sender: "bot", text: botText };
-    appendChatLog("assistant", botText, { trigger_index: triggerIndex });
+    appendChatLog("assistant", botText);
     setMessages((prev) => [...prev, userMessage, botReply]);
     setInput("");
   }
