@@ -616,7 +616,7 @@ export default function Home() {
 
             <div className="mt-6 space-y-2 text-lg text-white text-left pl-6">
               <p>
-                There will be 14 matrix reasoning problems. You will have 30 seconds for each question.
+                There will be 14 matrix reasoning problems. You will have 40 seconds for each question.
                 Each correct answer is worth 1 point.
               </p>
               <p>
