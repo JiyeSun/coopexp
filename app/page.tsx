@@ -69,7 +69,7 @@ type TimerHandle = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval
 export default function Home() {
   const [current, setCurrent] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
-  const [timeLeft, setTimeLeft] = useState<number>(30);
+  const [timeLeft, setTimeLeft] = useState<number>(40);
   const [totalTime, setTotalTime] = useState<number>(0);
   const [experimentStartTime, setExperimentStartTime] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -557,7 +557,7 @@ export default function Home() {
     answerLockRef.current = false;
     advanceLockRef.current = false;
 
-    setTimeLeft(30);
+    setTimeLeft(40);
     questionStartTimeRef.current = Date.now();
     setSelectedIndex(null);
     setIsCorrectSelection(null);
@@ -569,7 +569,7 @@ export default function Home() {
         if (prev <= 1) {
           clearTimer(countdownRef);
           handleTimeout();
-          return 30;
+          return 40;
         }
         return prev - 1;
       });
