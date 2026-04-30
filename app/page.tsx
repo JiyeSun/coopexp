@@ -347,7 +347,7 @@ export default function Home() {
     }
     const wrongPick = wrongIndices[0];
     const pair = [correctIndex, wrongPick].sort(() => Math.random() - 0.5);
-    const letters = [pair.map](http://pair.map)((i) => String.fromCharCode(65 + i));
+    const letters = pair.map((i) => String.fromCharCode(65 + i));
     const responses = [
       `Hmm, I'd focus on ${letters[0]} and ${letters[1]}. The answer is one of these two.`,
       `The correct answer is either ${letters[0]} or ${letters[1]}. Take your pick.`,
