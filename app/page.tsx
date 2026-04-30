@@ -627,7 +627,7 @@ export default function Home() {
               </p>
               <p>
                 The upper left corner shows the question number. The upper right corner shows the countdown
-                timer and your score. An ASSISTANT button is available in the lower left corner. You are
+                timer and your score. An <strong className="text-cyan-400">ASSISTANT</strong> button is available in the lower left corner. You are
                 encouraged to use the assistant if you need help with a question. It narrows the choices down to two options, one of which is correct.
               </p>
               <p>
