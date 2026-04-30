@@ -75,7 +75,6 @@ export default function Home() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isCorrectSelection, setIsCorrectSelection] = useState<boolean | null>(null);
   const [started, setStarted] = useState<boolean>(false);
-  const [showChat, setShowChat] = useState<boolean>(false);
   const [showCover, setShowCover] = useState(true);
   const [showStartButton, setShowStartButton] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -213,8 +212,6 @@ export default function Home() {
             Math.floor(Math.random() * (shortHelpPromptTexts.length - 1)) + 1;
           promptText = shortHelpPromptTexts[randomIndex];
         }
-    
-        setShowChat(true);
         setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
     
         appendChatLog("assistant", promptText, {
@@ -538,10 +535,8 @@ export default function Home() {
   }, [started, experimentStartTime, current]);
   
   useEffect(() => {
-    if (showChat) {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, showChat]);
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
 
   useEffect(() => {
@@ -627,8 +622,8 @@ export default function Home() {
               </p>
               <p>
                 The upper left corner shows the question number. The upper right corner shows the countdown
-                timer and your score. An <strong className="text-cyan-400">ASSISTANT</strong> button is available in the lower left corner. You are
-                encouraged to use the assistant if you need help with a question. It narrows the choices down to two options, one of which is correct.
+                timer and your score. An <strong className="text-cyan-400">ASSISTANT</strong> panel is on the left side of the screen. 
+                You are encouraged to use it if you need help with a question. It narrows the choices down to two options, one of which is correct.
               </p>
               <p>
                 Immediate feedback is provided after each selection: a green check mark indicates a correct answer, and a red cross indicates an incorrect one.
@@ -652,7 +647,6 @@ export default function Home() {
 
                   setMessages([]);
                   setInput("");
-                  setShowChat(false);
 
                   setStarted(true);
                   setExperimentStartTime(Date.now());
@@ -710,120 +704,13 @@ export default function Home() {
   const wrongCount = Math.max(0, current - score);
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center relative">
-      <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl border border-cyan-400">
-        <div className="text-center">
-          <p className="text-xs tracking-widest text-cyan-400">QUESTION</p>
-          <p className="text-2xl font-bold">
-            {current + 1}
-            <span className="text-sm text-gray-300 ml-2">/ {questions.length}</span>
-          </p>
-        </div>
-      </div>
-
-      <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl flex gap-8 items-center border border-cyan-400">
-        <div className="text-center">
-          <p className="text-xs tracking-widest text-cyan-400">WRONG</p>
-          <p className="text-2xl font-bold text-red-400">{wrongCount}</p>
-        </div>
-
-        <div className="text-center">
-          <p className="text-xs tracking-widest text-cyan-400">SCORE</p>
-          <p className="text-2xl font-bold text-green-400">{score}</p>
-        </div>
-
-        <div className="text-center">
-          <p className="text-xs tracking-widest text-cyan-400">TIME</p>
-          <p className={`text-2xl font-bold ${timeLeft <= 10 ? "text-red-500 animate-pulse" : "text-white"}`}>
-            {timeLeft}s
-          </p>
-        </div>
-      </div>
-
-      <img src={`/images/q${question.id}.png`} alt="question" className="mb-6 max-w-xl" />
-
-      <div className="grid grid-cols-6 gap-6">
-        {generateOptions(question.id).map((option, index) => (
-          <div key={index} className="relative">
-            <img
-              src={option}
-              alt="option"
-              onClick={() => handleAnswer(index)}
-              className={`w-24 h-24 object-contain transition duration-200
-                ${
-                  selectedIndex === index
-                    ? "ring-4 ring-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.9)] scale-110"
-                    : ""
-                }
-                ${
-                  selectedIndex === null
-                    ? "cursor-pointer hover:scale-105"
-                    : ""
-                }
-              `}
-            />
-
-            {selectedIndex === index && isCorrectSelection === true && (
-              <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center rounded">
-                <span className="text-green-400 text-5xl font-bold">✓</span>
-              </div>
-            )}
-
-            {selectedIndex === index && isCorrectSelection === false && (
-              <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center rounded">
-                <span className="text-red-500 text-5xl font-bold">✖</span>
-              </div>
-            )}
+      <div className="h-screen flex">
+        {/* 左侧 1/4 — 常驻 Assistant 面板 */}
+        <div className="w-1/4 h-full bg-white border-r border-gray-200 flex flex-col">
+          <div className="px-6 py-4 border-b">
+            <p className="text-xs tracking-widest text-black font-semibold">ASSISTANT</p>
           </div>
-        ))}
-      </div>
-
-      <button
-        onClick={() => {
-          setShowChat(true);
-      
-          if (hasManuallyOpenedAssistantRef.current) return;
-      
-          hasManuallyOpenedAssistantRef.current = true;
-      
-          if (assistantTriggerCountRef.current >= 4) return;
-
-          pendingWrongPromptQuestionRef.current = null;
-          assistantTriggerCountRef.current += 1;
-          wrongSinceLastPromptRef.current = 0;
-          
-          if (!hasShownLongPromptRef.current) {
-            hasShownLongPromptRef.current = true;
-            setMessages((prev) => [...prev, { sender: "bot", text: originalHelpPromptText }]);
-            appendChatLog("assistant", originalHelpPromptText, {
-              trigger_source: "manual",
-              prompt_type: "long",
-              trigger_index: 2,
-            });
-          } else {
-            const promptText = shortHelpPromptTexts[0];
-            setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
-            appendChatLog("assistant", promptText, {
-              trigger_source: "manual",
-              prompt_type: "short",
-              trigger_index: 2,
-            });
-          }
-        }}
-        className="fixed bottom-6 left-6 bg-black/80 backdrop-blur-md text-cyan-400 px-6 py-3 rounded-2xl border border-cyan-400 shadow-2xl tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
-      >
-        ASSISTANT
-      </button>
-
-      {showChat && (
-        <div className="fixed bottom-24 left-8 w-[400px] h-[560px] bg-white shadow-2xl rounded-3xl border border-gray-200 flex flex-col">
-          <div className="px-6 py-4 border-b flex justify-between items-center">
-            <p className="text-xs tracking-widest text-black">ASSISTANT</p>
-            <button onClick={() => setShowChat(false)} className="text-gray-400 hover:text-black text-sm">
-              ✕
-            </button>
-          </div>
-
+  
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             {messages.map((msg, index) => (
               <div
@@ -831,7 +718,6 @@ export default function Home() {
                 className={`flex items-end gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 {msg.sender === "bot" && <img src="/images/bot.png" alt="bot" className="w-8 h-8 rounded-full" />}
-
                 <div
                   className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm whitespace-pre-line ${
                     msg.sender === "user" ? "bg-black text-white" : "bg-white text-black border border-black"
@@ -839,13 +725,12 @@ export default function Home() {
                 >
                   {msg.text}
                 </div>
-
                 {msg.sender === "user" && <img src="/images/user.png" alt="user" className="w-8 h-8 rounded-full" />}
               </div>
             ))}
             <div ref={chatEndRef} />
           </div>
-
+  
           <div className="border-t px-5 py-4 flex gap-3">
             <input
               value={input}
@@ -862,7 +747,64 @@ export default function Home() {
             </button>
           </div>
         </div>
-      )}
-    </div>
-  );
+  
+        {/* 右侧 3/4 — 题目区域 */}
+        <div className="w-3/4 h-full flex flex-col items-center justify-center relative">
+          <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl border border-cyan-400">
+            <div className="text-center">
+              <p className="text-xs tracking-widest text-cyan-400">QUESTION</p>
+              <p className="text-2xl font-bold">
+                {current + 1}
+                <span className="text-sm text-gray-300 ml-2">/ {questions.length}</span>
+              </p>
+            </div>
+          </div>
+  
+          <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl flex gap-8 items-center border border-cyan-400">
+            <div className="text-center">
+              <p className="text-xs tracking-widest text-cyan-400">WRONG</p>
+              <p className="text-2xl font-bold text-red-400">{wrongCount}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs tracking-widest text-cyan-400">SCORE</p>
+              <p className="text-2xl font-bold text-green-400">{score}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs tracking-widest text-cyan-400">TIME</p>
+              <p className={`text-2xl font-bold ${timeLeft <= 10 ? "text-red-500 animate-pulse" : "text-white"}`}>
+                {timeLeft}s
+              </p>
+            </div>
+          </div>
+  
+          <img src={`/images/q${question.id}.png`} alt="question" className="mb-6 max-w-xl" />
+  
+          <div className="grid grid-cols-6 gap-6">
+            {generateOptions(question.id).map((option, index) => (
+              <div key={index} className="relative">
+                <img
+                  src={option}
+                  alt="option"
+                  onClick={() => handleAnswer(index)}
+                  className={`w-24 h-24 object-contain transition duration-200
+                    ${selectedIndex === index ? "ring-4 ring-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.9)] scale-110" : ""}
+                    ${selectedIndex === null ? "cursor-pointer hover:scale-105" : ""}
+                  `}
+                />
+                {selectedIndex === index && isCorrectSelection === true && (
+                  <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center rounded">
+                    <span className="text-green-400 text-5xl font-bold">✓</span>
+                  </div>
+                )}
+                {selectedIndex === index && isCorrectSelection === false && (
+                  <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center rounded">
+                    <span className="text-red-500 text-5xl font-bold">✖</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
 }
