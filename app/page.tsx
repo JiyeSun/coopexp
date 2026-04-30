@@ -29,6 +29,15 @@ const shortHelpPromptTexts = [
   "One more hint?",
 ];
 
+const encouragementMessages = [
+  "Good job!",
+  "Excellent work!",
+  "Well done!",
+  "Nice one!",
+  "You got it!",
+  "Great answer!",
+];
+
 const QUALTRICS_RETURN_URL = "https://iu.co1.qualtrics.com/jfe/form/SV_2tvhb3IQU4w77Om";
 const GOOGLE_APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbzeCOeL06qEoF8QOlnJ6w67x-t8TCJuWTGkS24bYtSG-XNcZjrIkvZOaLrYXOP9DsUr/exec";
