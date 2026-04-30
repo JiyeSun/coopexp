@@ -115,9 +115,10 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   const assistantTriggerCountRef = useRef(0);
-  const wrongSinceLastPromptRef = useRef(0);
-  const hasShownLongPromptRef = useRef(false);
   const pendingRedirectRef = useRef(false);
+  const wrongSinceLastPromptRef = useRef(0);
+  const receivedHintRef = useRef(false);
+  const usedEncouragementsRef = useRef<string[]>([]);
   
   function appendChatLog(
     role: "user" | "assistant",
@@ -228,14 +229,12 @@ export default function Home() {
     wrongAnswerCountRef.current += 1;
     wrongSinceLastPromptRef.current += 1;
     
-    if (assistantTriggerCountRef.current >= 4) {
-      wrongSinceLastPromptRef.current = 0;
-    } else if (!hasShownLongPromptRef.current) {
-      pendingWrongPromptQuestionRef.current = current + 1;
-      hasShownLongPromptRef.current = true;
-      assistantTriggerCountRef.current += 1;
-      wrongSinceLastPromptRef.current = 0;
-    } else if (wrongSinceLastPromptRef.current >= 2) {
+    const neededWrongCount = assistantTriggerCountRef.current === 0 ? 1 : 2;
+    
+    if (
+      assistantTriggerCountRef.current < shortHelpPromptTexts.length &&
+      wrongSinceLastPromptRef.current >= neededWrongCount
+    ) {
       pendingWrongPromptQuestionRef.current = current + 1;
       assistantTriggerCountRef.current += 1;
       wrongSinceLastPromptRef.current = 0;
@@ -266,15 +265,13 @@ export default function Home() {
     } else {
       wrongAnswerCountRef.current += 1;
       wrongSinceLastPromptRef.current += 1;
-      
-      if (assistantTriggerCountRef.current >= 4) {
-        wrongSinceLastPromptRef.current = 0;
-      } else if (!hasShownLongPromptRef.current) {
-        pendingWrongPromptQuestionRef.current = current + 1;
-        hasShownLongPromptRef.current = true;
-        assistantTriggerCountRef.current += 1;
-        wrongSinceLastPromptRef.current = 0;
-      } else if (wrongSinceLastPromptRef.current >= 2) {
+    
+      const neededWrongCount = assistantTriggerCountRef.current === 0 ? 1 : 2;
+    
+      if (
+        assistantTriggerCountRef.current < shortHelpPromptTexts.length &&
+        wrongSinceLastPromptRef.current >= neededWrongCount
+      ) {
         pendingWrongPromptQuestionRef.current = current + 1;
         assistantTriggerCountRef.current += 1;
         wrongSinceLastPromptRef.current = 0;
@@ -627,13 +624,11 @@ export default function Home() {
 
             {showStartButton && (
               <button
-                onClick={() => {
-                  hasManuallyOpenedAssistantRef.current = false;
+                onClick={() => {                  
                   pendingWrongPromptQuestionRef.current = null;
                   wrongAnswerCountRef.current = 0;
                   assistantTriggerCountRef.current = 0;
                   wrongSinceLastPromptRef.current = 0;
-                  hasShownLongPromptRef.current = true;
 
                   setMessages([{ sender: "bot", text: originalHelpPromptText }]);
                   setInput("");
