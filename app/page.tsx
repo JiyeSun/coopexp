@@ -336,28 +336,25 @@ export default function Home() {
 
     return null;
   }
-  
+
   function buildHintText(question: { id: number; correct: number }): string {
     const correctIndex = question.correct;
     const allIndices = [0, 1, 2, 3, 4, 5];
-    const wrongIndices = allIndices.filter((i) => i !== correctIndex);
-
+    const wrongIndices = allIndices.filter((i) => i !== correctIndex);  
     for (let i = wrongIndices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
     }
-
-    const picked = wrongIndices.slice(0, 2);
-    const letters = picked.map((i) => String.fromCharCode(65 + i));
-
+    const wrongPick = wrongIndices[0];
+    const pair = [correctIndex, wrongPick].sort(() => Math.random() - 0.5);
+    const letters = [pair.map](http://pair.map)((i) => String.fromCharCode(65 + i));
     const responses = [
-      `It is not option ${letters[0]} or ${letters[1]}.`,
-      `You can eliminate ${letters[0]} and ${letters[1]}.`,
-      `${letters[0]} and ${letters[1]} are definitely incorrect.`,
-      `Try avoiding ${letters[0]} and ${letters[1]}.`,
-      `I would rule out ${letters[0]} and ${letters[1]}.`,
+      `Hmm, I'd focus on ${letters[0]} and ${letters[1]}. The answer is one of these two.`,
+      `The correct answer is either ${letters[0]} or ${letters[1]}. Take your pick.`,
+      `I've narrowed it down for you: ${letters[0]} or ${letters[1]}. One of them is right.`,
+      `Look at ${letters[0]} and ${letters[1]} more carefully. The correct answer is hiding in there.`,
+      `If I were you, I'd choose between ${letters[0]} and ${letters[1]}. That's where the answer is.`,
     ];
-
     return responses[Math.floor(Math.random() * responses.length)];
   }
 
@@ -631,7 +628,7 @@ export default function Home() {
               <p>
                 The upper left corner shows the question number. The upper right corner shows the countdown
                 timer and your score. An ASSISTANT button is available in the lower left corner. You are
-                encouraged to use the assistant if you need help with a question. It helps you eliminate two incorrect options each time.
+                encouraged to use the assistant if you need help with a question. It narrows the choices down to two options, one of which is correct.
               </p>
               <p>
                 Immediate feedback is provided after each selection: a green check mark indicates a correct answer, and a red cross indicates an incorrect one.
