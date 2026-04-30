@@ -24,7 +24,7 @@ const originalHelpPromptText =
 
 const shortHelpPromptTexts = [
   "Do you want me to help you? Tell me which question you are trying to solve.",
-  "I can give you a hint!",
+  "I can give you a hint!/nJust tell me the question number.",
   "Any help?",
   "One more hint?",
 ];
@@ -392,6 +392,9 @@ export default function Home() {
       normalized === "no" ||
       normalized === "nope" ||
       normalized === "nah" ||
+      normalized === "stop" ||
+      normalized === "i'm good" ||
+      normalized === "i am good" ||
       normalized.startsWith("noneed") ||
       normalized.startsWith("nothanks") ||
       normalized.startsWith("nothank")
