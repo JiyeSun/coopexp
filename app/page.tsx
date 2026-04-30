@@ -202,9 +202,7 @@ export default function Home() {
     
         let promptText;
     
-        if (assistantTriggerCountRef.current === 1) {
-          promptText = originalHelpPromptText;
-        } else if (assistantTriggerCountRef.current === 2) {
+        if (assistantTriggerCountRef.current <= 2) {
           promptText = shortHelpPromptTexts[0];
         } else {
           const randomIndex =
@@ -215,9 +213,8 @@ export default function Home() {
     
         appendChatLog("assistant", promptText, {
           trigger_source: "auto",
-          prompt_type:
-            assistantTriggerCountRef.current === 1 ? "long" : "short",
-          trigger_index: assistantTriggerCountRef.current === 1 ? 1 : 3,
+          prompt_type:"short",
+          trigger_index: 3,
         });
       }
     
