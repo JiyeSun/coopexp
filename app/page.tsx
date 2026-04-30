@@ -24,7 +24,7 @@ const originalHelpPromptText =
 
 const shortHelpPromptTexts = [
   "Do you want me to help you? Tell me which question you are trying to solve.",
-  "I can give you a hint!/nJust tell me the question number.",
+  "I can give you a hint!\nJust tell me the question number.",
   "Any help?",
   "One more hint?",
 ];
@@ -118,6 +118,7 @@ export default function Home() {
   const pendingRedirectRef = useRef(false);
   const wrongSinceLastPromptRef = useRef(0);
   const receivedHintRef = useRef(false);
+  const lastShortPromptIndexRef = useRef<number | null>(null);
   const usedEncouragementsRef = useRef<string[]>([]);
   
   function appendChatLog(
@@ -206,8 +207,11 @@ export default function Home() {
         pendingWrongPromptQuestionRef.current = null;
     
         let promptText;
-    
-        promptText = shortHelpPromptTexts[assistantTriggerCountRef.current - 1];
+
+        const promptIndex = assistantTriggerCountRef.current - 1;
+        lastShortPromptIndexRef.current = promptIndex;
+        
+        promptText = shortHelpPromptTexts[promptIndex];
         setMessages((prev) => [...prev, { sender: "bot", text: promptText }]);
     
         appendChatLog("assistant", promptText);
@@ -366,6 +370,33 @@ export default function Home() {
   function generateReply(message: string, currentQuestionId: number): { text: string; triggerIndex: 4 | 5 } {
     const text = message.trim().toLowerCase();
     const normalized = text.replace(/[^a-z]/g, "");
+    const positiveHelpReplies = [
+      "yes",
+      "yeah",
+      "yep",
+      "yup",
+      "sure",
+      "ok",
+      "okay",
+      "pls",
+      "please",
+      "help",
+    ];
+    
+    if (
+      lastShortPromptIndexRef.current !== null &&
+      lastShortPromptIndexRef.current >= 2 &&
+      positiveHelpReplies.includes(normalized)
+    ) {
+      lastShortPromptIndexRef.current = null;
+    
+      const currentQ = questions.find((q) => q.id === currentQuestionId);
+      if (!currentQ) {
+        return { text: "I couldn't find the current question.", triggerIndex: 5 };
+      }
+    
+      return { text: buildHintText(currentQ), triggerIndex: 4 };
+    }
 
     // yes — follow up on a pending redirect
     if (pendingRedirectRef.current && ["yes", "yeah", "yep", "yup", "sure"].includes(normalized)) {
@@ -656,6 +687,7 @@ export default function Home() {
                   wrongAnswerCountRef.current = 0;
                   assistantTriggerCountRef.current = 0;
                   wrongSinceLastPromptRef.current = 0;
+                  lastShortPromptIndexRef.current = null;
 
                   setMessages([{ sender: "bot", text: originalHelpPromptText }]);
                   setInput("");
