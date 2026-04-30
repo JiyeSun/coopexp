@@ -20,8 +20,7 @@ const questions = [
 ];
 
 const originalHelpPromptText =
-  "Do you want me to help you?\n\n" +
-  "If you need help solving a question, just ask me. Tell me which question you are struggling with and let's solve it together. I can help you with up to 10 questions. For example, you can ask: 'Help me on Question 1.'";
+  "Hi there! I'm here to help you if you get stuck.\n\nJust type the question number you're working on (e.g., '1'), and I'll narrow it down to two options for you.";
 
 const shortHelpPromptTexts = [
   "Do you want me to help you? Tell me which question you are trying to solve.",
@@ -645,7 +644,7 @@ export default function Home() {
                   wrongSinceLastPromptRef.current = 0;
                   hasShownLongPromptRef.current = false;
 
-                  setMessages([]);
+                  setMessages([{ sender: "bot", text: originalHelpPromptText }]);
                   setInput("");
 
                   setStarted(true);
