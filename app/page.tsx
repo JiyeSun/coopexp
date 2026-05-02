@@ -74,7 +74,7 @@ type TimerHandle = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval
 export default function Home() {
   const [current, setCurrent] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
-  const [timeLeft, setTimeLeft] = useState<number>(40);
+  const [timeLeft, setTimeLeft] = useState<number>(90);
   const [totalTime, setTotalTime] = useState<number>(0);
   const [experimentStartTime, setExperimentStartTime] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -594,7 +594,7 @@ export default function Home() {
     answerLockRef.current = false;
     advanceLockRef.current = false;
 
-    setTimeLeft(40);
+    setTimeLeft(90);
     questionStartTimeRef.current = Date.now();
     setSelectedIndex(null);
     setIsCorrectSelection(null);
@@ -606,7 +606,7 @@ export default function Home() {
         if (prev <= 1) {
           clearTimer(countdownRef);
           handleTimeout();
-          return 40;
+          return 90;
         }
         return prev - 1;
       });
@@ -662,7 +662,7 @@ export default function Home() {
 
             <div className="mt-6 space-y-2 text-lg text-white text-left pl-6">
               <p>
-                There will be 14 matrix reasoning problems. You will have 40 seconds for each question.
+                There will be 14 matrix reasoning problems. You will have 90 seconds for each question.
                 Each correct answer is worth 1 point.
               </p>
               <p>
