@@ -671,21 +671,22 @@ export default function Home() {
 
   if (!started) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center px-6">
-        <div className="bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] max-w-2xl p-12 text-center">
-          <div className="text-center">
-            <div className="text-4xl font-bold mb-4">
-              <p>RULES</p>
-            </div>
-
-            <div className="mt-6 space-y-2 text-lg text-white text-left pl-6">
+      <div className="h-screen bg-black flex flex-col items-center justify-center px-16">
+        <div className="w-full h-full bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] p-12 flex flex-col">
+          <div className="text-4xl font-bold mb-8 text-center">
+            <p>RULES</p>
+          </div>
+    
+          <div className="flex gap-10 items-start flex-1">
+            {/* 左侧文字 */}
+            <div className="w-1/3 space-y-4 text-lg text-white">
               <p>
-                There will be 14 matrix reasoning problems. You will have 90 seconds for each question.
+                There will be 10 matrix reasoning problems. You will have 90 seconds for each question.
                 Each correct answer is worth 1 point.
               </p>
               <p>
                 The upper left corner shows the question number. The upper right corner shows the countdown
-                timer and your score. An <strong className="text-cyan-400">ASSISTANT</strong> panel is on the left side of the screen. 
+                timer and your score. An <strong className="text-cyan-400">ASSISTANT</strong> panel is on the left side of the screen.
                 You are encouraged to use it if you need help with a question. It narrows the choices down to two options, one of which is correct.
               </p>
               <p>
@@ -693,23 +694,30 @@ export default function Home() {
               </p>
               <p>You and the assistant will work together as a team. Please solve as many problems as you can.</p>
             </div>
+    
+            {/* 右侧视频占位 */}
+            <div className="w-2/3 h-full bg-gray-800 border border-gray-600 rounded-2xl flex items-center justify-center text-gray-500 text-sm">
+              <video
+                src="/videos/rules.mp4"
+            </div>
           </div>
-
-          <div className="flex flex-col items-center mt-6">
+    
+          {/* 底部按钮 */}
+          <div className="flex flex-col items-center mt-auto pt-8">
             {!showStartButton && <p className="text-gray-500 animate-pulse mb-4">Preparing challenge...</p>}
-
+    
             {showStartButton && (
               <button
-                onClick={() => {                  
+                onClick={() => {
                   pendingWrongPromptQuestionRef.current = null;
                   wrongAnswerCountRef.current = 0;
                   assistantTriggerCountRef.current = 0;
                   wrongSinceLastPromptRef.current = 0;
                   lastShortPromptIndexRef.current = null;
-
+    
                   setMessages([{ sender: "bot", text: originalHelpPromptText }]);
                   setInput("");
-
+    
                   setStarted(true);
                   setExperimentStartTime(Date.now());
                 }}
