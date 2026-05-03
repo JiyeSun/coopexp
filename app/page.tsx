@@ -21,8 +21,8 @@ const originalHelpPromptText =
 const shortHelpPromptTexts = [
   "I can give you a hint!\nJust tell me the question number.",
   "Hey, \nNo worries — we can get the next one together.",
-  "Any help?",
   "That one was tricky. Let’s figure this one out together.",
+  "Any help?",
 ];
 
 const encouragementMessages = [
@@ -396,7 +396,7 @@ export default function Home() {
     
     if (
       lastShortPromptIndexRef.current !== null &&
-      lastShortPromptIndexRef.current >= 1 &&
+      lastShortPromptIndexRef.current >=3 &&
       positiveHelpReplies.includes(normalized)
     ) {
       lastShortPromptIndexRef.current = null;
