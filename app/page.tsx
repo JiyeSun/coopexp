@@ -396,7 +396,6 @@ export default function Home() {
       "okay",
       "pls",
       "please",
-      "help",
     ];
     
     if (
@@ -459,7 +458,7 @@ export default function Home() {
     }
 
     // hint / clue / tip — give hint for current question
-    if (["hint", "clue", "tip"].some((kw) => text.includes(kw)) || text === "help me") {
+    if (["hint", "clue", "tip"].some((kw) => text.includes(kw)) || text === "help me" || normalized === "help") {
       const currentQ = questions.find((q) => q.id === currentQuestionId);
       if (!currentQ) return { text: "I couldn't find the current question.", triggerIndex: 5 };
       return { text: buildHintText(currentQ), triggerIndex: 4 };
