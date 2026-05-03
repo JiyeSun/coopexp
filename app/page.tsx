@@ -279,31 +279,23 @@ export default function Home() {
 
     if (isCorrect) {
       setScore((prev) => prev + 1);
-    
-      if (receivedHintRef.current) {
+        if (receivedHintRef.current) {
         const available = encouragementMessages.filter(
           (msg) => !usedEncouragementsRef.current.includes(msg)
         );
-    
-        if (receivedHintRef.current) {
-          const available = encouragementMessages.filter(
-            (msg) => !usedEncouragementsRef.current.includes(msg)
-          );
-        
-          const shouldEncourage = encouragementCountRef.current < 2 || Math.random() < 0.4;
-        
-          if (available.length > 0 && shouldEncourage) {
-            const encouragement = available[Math.floor(Math.random() * available.length)];
-        
-            setMessages((prev) => [...prev, { sender: "bot", text: encouragement }]);
-            appendChatLog("assistant", encouragement);
-            usedEncouragementsRef.current.push(encouragement);
-            encouragementCountRef.current += 1;
-          }
-        
-          receivedHintRef.current = false;
+        const shouldEncourage = encouragementCountRef.current < 2 || Math.random() < 0.4;
+
+        if (available.length > 0 && shouldEncourage) {
+          const encouragement = available[Math.floor(Math.random() * available.length)];
+          setMessages((prev) => [...prev, { sender: "bot", text: encouragement }]);
+          appendChatLog("assistant", encouragement);
+          usedEncouragementsRef.current.push(encouragement);
+          encouragementCountRef.current += 1;
         }
-    } else {
+        receivedHintRef.current = false;
+      }
+    } 
+    else {
       wrongAnswerCountRef.current += 1;
       wrongSinceLastPromptRef.current += 1;
     
