@@ -20,13 +20,13 @@ const questions = [
 ];
 
 const originalHelpPromptText =
-  "Hi there! I'm here to help you if you get stuck.\n\nJust type the question number you're working on (e.g., '1'), and I'll narrow it down to two options for you.";
+  "Hi there! We’re on the same team!\nI'm here to help you if you get stuck.\n\nJust type the question number you're working on (e.g., '1'), and I'll narrow it down to two options for you.";
 
 const shortHelpPromptTexts = [
-  "Do you want me to help you? Tell me which question you are trying to solve.",
   "I can give you a hint!\nJust tell me the question number.",
+  "Hey, \nNo worries — we can get the next one together.",
   "Any help?",
-  "One more hint?",
+  "That one was tricky. Let’s figure this one out together.",
 ];
 
 const encouragementMessages = [
@@ -37,6 +37,20 @@ const encouragementMessages = [
   "You got it!",
   "Great answer!",
 ];
+
+const commu = [
+  {id:1, time: 5, hint:"This one is relatively simple， you got this!"},
+  {id:2, time: 15, hint:"Hmm, this one’s tough. Maybe try tracking the outer shape and the inner pattern separately?"},
+  {id:3, time: 12, hint:"If I were you, I’d look at both the border and the center, and how they change across the row."},
+  {id:5, time: 10, hint:"This one’s a bit easier. I think you can focus on how the black section moves and flips."},
+  {id:6, time: 15, hint:"Try imagining the first two shapes combined?"},
+  {id:7, time: 7, hint:"You’ll handle this one just fine. It’s a simple one!"},
+  {id:8, time: 18, hint:"I feel like you could try overlaying the first two shapes in each row and see what cancels out."},
+  {id:9, time: 10, hint:"It might help to look at how the black area changes across each row~"},
+  {id:10, time: 15, hint:"I’m not totally sure, but you might look at each column—notice how the inner shape in the first and third match, while the outer shape in the second and third match."},
+  {id:11, time: 15, hint:"The last one! You got this!\nThis one’s similar in that you should look at each column—please try tracking the top and bottom parts separately."},];
+
+  
 
 const QUALTRICS_RETURN_URL = "https://iu.co1.qualtrics.com/jfe/form/SV_2tvhb3IQU4w77Om";
 const GOOGLE_APPS_SCRIPT_URL =
@@ -95,6 +109,7 @@ export default function Home() {
   const advanceRef = useRef<TimerHandle>(null);
   const answerTimeoutRef = useRef<TimerHandle>(null);
   const autoReturnTimerRef = useRef<TimerHandle>(null);
+  const hintTimerRef = useRef<TimerHandle>(null);
 
   const answerLockRef = useRef(false);
   const advanceLockRef = useRef(false);
@@ -191,6 +206,7 @@ export default function Home() {
     clearTimer(answerTimeoutRef);
     clearTimer(countdownRef);
     clearTimer(advanceRef);
+    clearTimer(hintTimerRef);
 
     advanceRef.current = setTimeout(() => {
       setSelectedIndex(null);
@@ -385,7 +401,7 @@ export default function Home() {
     
     if (
       lastShortPromptIndexRef.current !== null &&
-      lastShortPromptIndexRef.current >= 2 &&
+      lastShortPromptIndexRef.current >= 1 &&
       positiveHelpReplies.includes(normalized)
     ) {
       lastShortPromptIndexRef.current = null;
@@ -411,10 +427,8 @@ export default function Home() {
     // why
     if (text === "why") {
       const responses = [
-        "Don't ask why. I'll just help you cut out some wrong options. You don't have that much time.",
-        "No time for 'why'. I'll help you eliminate a few wrong ones.",
-        "Skip the why. Let's narrow it down fast.",
-        "I won't explain everything. I'll just remove some bad options for you.",
+        "There is really no extra time for 'why.' Let’s move~",
+        "Let’s focus on narrowing it down first—we can come back to the “why” after the test.",
       ];
       return { text: responses[Math.floor(Math.random() * responses.length)], triggerIndex: 5 };
     }
@@ -433,9 +447,13 @@ export default function Home() {
       const responses = ["Okay.", "No problem.", "Alright.", "Sure."];
       return { text: responses[Math.floor(Math.random() * responses.length)], triggerIndex: 5 };
     }
+
+    if (normalized === "thankyou" || normalized === "thanku" || normalized === "thanks" || normalized === "thank") {
+      return { text: "You are welcome!", triggerIndex: 5 };
+    }
     
     // ok / okay / got it / alright — light acknowledgement
-    if (["ok", "okay", "alright", "gotit", "noted", "sure", "thanks", "thank"].includes(normalized)) {
+    if (["ok", "okay", "alright", "gotit", "noted", "sure"].includes(normalized)) {
       const responses = ["Got it.", "Alright.", "Sure.", "Noted."];
       return { text: responses[Math.floor(Math.random() * responses.length)], triggerIndex: 5 };
     }
@@ -600,7 +618,15 @@ export default function Home() {
     setIsCorrectSelection(null);
 
     initCurrentTrial();
-
+    clearTimer(hintTimerRef);
+    const hintEntry = commu.find((c) => c.id === questions[current].id);
+    if (hintEntry) {
+      hintTimerRef.current = setTimeout(() => {
+        setMessages((prev) => [...prev, { sender: "bot", text: hintEntry.hint }]);
+        appendChatLog("assistant", hintEntry.hint);
+        receivedHintRef.current = true;  
+      }, hintEntry.time * 1000);
+    }
     countdownRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -616,6 +642,7 @@ export default function Home() {
       clearTimer(countdownRef);
       clearTimer(advanceRef);
       clearTimer(answerTimeoutRef);
+      clearTimer(hintTimerRef);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, started]);
