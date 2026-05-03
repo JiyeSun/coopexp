@@ -673,7 +673,7 @@ export default function Home() {
               <p>
                 Immediate feedback is provided after each selection: a green check mark indicates a correct answer, and a red cross indicates an incorrect one.
               </p>
-              <p>Please solve as many problems as you can.</p>
+              <p>You and the assistant will work together as a team. Please solve as many problems as you can.</p>
             </div>
           </div>
 
