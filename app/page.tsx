@@ -128,6 +128,7 @@ export default function Home() {
   const assistantTriggerCountRef = useRef(0);
   const pendingRedirectRef = useRef(false);
   const wrongSinceLastPromptRef = useRef(0);
+  const encouragementCountRef = useRef(0);
   const receivedHintRef = useRef(false);
   const lastShortPromptIndexRef = useRef<number | null>(null);
   const usedEncouragementsRef = useRef<string[]>([]);
@@ -285,16 +286,21 @@ export default function Home() {
         );
     
         if (available.length > 0) {
+        const shouldEncourage =
+          encouragementCountRef.current < 2 || Math.random() < 0.4;
+
+        if (available.length > 0 && shouldEncourage) {
           const encouragement =
             available[Math.floor(Math.random() * available.length)];
-    
+        
           setMessages((prev) => [
             ...prev,
             { sender: "bot", text: encouragement },
           ]);
-    
+        
           appendChatLog("assistant", encouragement);
           usedEncouragementsRef.current.push(encouragement);
+          encouragementCountRef.current += 1;
         }
     
         receivedHintRef.current = false;
