@@ -699,6 +699,9 @@ export default function Home() {
             <div className="w-2/3 h-full bg-gray-800 border border-gray-600 rounded-2xl flex items-center justify-center text-gray-500 text-sm">
               <video
                 src="/videos/rules.mp4"
+                controls
+                className="w-full h-full rounded-2xl object-cover"
+              />
             </div>
           </div>
     
