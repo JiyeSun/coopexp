@@ -285,26 +285,24 @@ export default function Home() {
           (msg) => !usedEncouragementsRef.current.includes(msg)
         );
     
-        if (available.length > 0) {
-        const shouldEncourage =
-          encouragementCountRef.current < 2 || Math.random() < 0.4;
-
-        if (available.length > 0 && shouldEncourage) {
-          const encouragement =
-            available[Math.floor(Math.random() * available.length)];
+        if (receivedHintRef.current) {
+          const available = encouragementMessages.filter(
+            (msg) => !usedEncouragementsRef.current.includes(msg)
+          );
         
-          setMessages((prev) => [
-            ...prev,
-            { sender: "bot", text: encouragement },
-          ]);
+          const shouldEncourage = encouragementCountRef.current < 2 || Math.random() < 0.4;
         
-          appendChatLog("assistant", encouragement);
-          usedEncouragementsRef.current.push(encouragement);
-          encouragementCountRef.current += 1;
+          if (available.length > 0 && shouldEncourage) {
+            const encouragement = available[Math.floor(Math.random() * available.length)];
+        
+            setMessages((prev) => [...prev, { sender: "bot", text: encouragement }]);
+            appendChatLog("assistant", encouragement);
+            usedEncouragementsRef.current.push(encouragement);
+            encouragementCountRef.current += 1;
+          }
+        
+          receivedHintRef.current = false;
         }
-    
-        receivedHintRef.current = false;
-      }
     } else {
       wrongAnswerCountRef.current += 1;
       wrongSinceLastPromptRef.current += 1;
@@ -879,5 +877,4 @@ export default function Home() {
         </div>
       </div>
     );
-}
 }
