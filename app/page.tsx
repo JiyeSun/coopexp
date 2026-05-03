@@ -37,9 +37,9 @@ const encouragementMessages = [
 const commu = [
   {id:1, time: 5, hint:"This one is relatively simple， you got this!"},
   {id:2, time: 15, hint:"Hmm, this one’s tough. Maybe try tracking the outer shape and the inner pattern separately?\n\nYou can always ask me for help, too."},
-  {id:3, time: 12, hint:"If I were you, I’d look at both the border and the center, and how they change across the row."},
+  {id:3, time: 12, hint:"If I were you, I’d look at both the border and the center, and how they change across the row—I have a feeling the inner shape might be a solid circle."},
   {id:4, time: 10, hint:"This one’s a bit easier. I think you can focus on how the black section moves and flips."},
-  {id:5, time: 15, hint:"Try imagining the first two shapes combined?"},
+  {id:5, time: 15, hint:"Try imagining the first two shapes in each row combined?"},
   {id:6, time: 7, hint:"You’ll handle this one just fine. It’s a simple one!"},
   {id:7, time: 18, hint:"I feel like you could try overlaying the first two shapes in each row and see what cancels out."},
   {id:8, time: 10, hint:"It might help to look at how the black area changes across each row~"},
