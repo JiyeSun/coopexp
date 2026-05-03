@@ -132,6 +132,7 @@ export default function Home() {
   const receivedHintRef = useRef(false);
   const lastShortPromptIndexRef = useRef<number | null>(null);
   const usedEncouragementsRef = useRef<string[]>([]);
+  const [rulesView, setRulesView] = useState<"choice" | "text" | "video">("choice");
   
   function appendChatLog(
     role: "user" | "assistant",
@@ -670,16 +671,40 @@ export default function Home() {
   }
 
   if (!started) {
-    return (
-      <div className="h-screen bg-black flex flex-col items-center justify-center px-16">
-        <div className="w-full h-full bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] p-12 flex flex-col">
-          <div className="text-4xl font-bold mb-8 text-center">
-            <p>RULES</p>
+    // 选择界面
+    if (rulesView === "choice") {
+      return (
+        <div className="h-screen bg-black flex flex-col items-center justify-center gap-8">
+          <h1 className="text-4xl font-bold text-white tracking-wide">RULES</h1>
+          <p className="text-gray-400 text-lg">How would you like to view the rules?</p>
+          <div className="flex gap-8">
+            <button
+              onClick={() => setRulesView("text")}
+              className="px-10 py-5 border border-cyan-400 text-cyan-400 rounded-2xl text-lg hover:bg-cyan-400 hover:text-black transition"
+            >
+              Read Text
+            </button>
+            <button
+              onClick={() => setRulesView("video")}
+              className="px-10 py-5 border border-cyan-400 text-cyan-400 rounded-2xl text-lg hover:bg-cyan-400 hover:text-black transition"
+            >
+              Watch Video
+            </button>
           </div>
-    
-          <div className="flex gap-10 items-start flex-1">
-            {/* 左侧文字 */}
-            <div className="w-1/3 space-y-4 text-lg text-white">
+        </div>
+      );
+    }
+  
+    // 文字界面
+    if (rulesView === "text") {
+      return (
+        <div className="h-screen bg-black flex flex-col items-center justify-center px-16">
+          <div className="w-full h-full bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] p-12 flex flex-col">
+            <div className="text-4xl font-bold mb-8 text-center">
+              <p>RULES</p>
+            </div>
+  
+            <div className="flex-1 space-y-4 text-lg text-white">
               <p>
                 There will be 10 matrix reasoning problems. You will have 90 seconds for each question.
                 Each correct answer is worth 1 point.
@@ -694,21 +719,58 @@ export default function Home() {
               </p>
               <p>You and the assistant will work together as a team. Please solve as many problems as you can.</p>
             </div>
-    
-            {/* 右侧视频占位 */}
-            <div className="w-2/3 h-full bg-gray-800 border border-gray-600 rounded-2xl flex items-center justify-center text-gray-500 text-sm">
-              <video
-                src="/videos/rules.mp4"
-                controls
-                className="w-full h-full rounded-2xl object-cover"
-              />
+  
+            <div className="flex flex-col items-center mt-auto pt-8 gap-4">
+              {!showStartButton && <p className="text-gray-500 animate-pulse">Preparing challenge...</p>}
+              {showStartButton && (
+                <button
+                  onClick={() => {
+                    pendingWrongPromptQuestionRef.current = null;
+                    wrongAnswerCountRef.current = 0;
+                    assistantTriggerCountRef.current = 0;
+                    wrongSinceLastPromptRef.current = 0;
+                    lastShortPromptIndexRef.current = null;
+                    setMessages([{ sender: "bot", text: originalHelpPromptText }]);
+                    setInput("");
+                    setStarted(true);
+                    setExperimentStartTime(Date.now());
+                  }}
+                  className="px-10 py-4 bg-black/80 backdrop-blur-md text-cyan-400 rounded-2xl border border-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.3)] tracking-widest text-lg hover:bg-cyan-400 hover:text-black transition-all duration-300"
+                >
+                  READY!
+                </button>
+              )}
+              <button
+                onClick={() => setRulesView("choice")}
+                className="text-gray-500 hover:text-white text-sm transition"
+              >
+                ← Back
+              </button>
             </div>
           </div>
-    
-          {/* 底部按钮 */}
-          <div className="flex flex-col items-center mt-auto pt-8">
-            {!showStartButton && <p className="text-gray-500 animate-pulse mb-4">Preparing challenge...</p>}
-    
+        </div>
+      );
+    }
+  
+    // 视频界面
+    return (
+      <div className="h-screen bg-black flex flex-col items-center justify-center px-16">
+        <div className="w-full h-full bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] p-12 flex flex-col items-center">
+          <div className="text-4xl font-bold mb-8">
+            <p>RULES</p>
+          </div>
+  
+          <div className="flex-1 flex items-center justify-center w-full">
+            <video
+              src="/videos/rules.mp4"
+              controls
+              className="max-h-full max-w-full rounded-2xl"
+              style={{ aspectRatio: "auto" }}
+            />
+          </div>
+  
+          <div className="flex flex-col items-center mt-auto pt-8 gap-4">
+            {!showStartButton && <p className="text-gray-500 animate-pulse">Preparing challenge...</p>}
             {showStartButton && (
               <button
                 onClick={() => {
@@ -717,10 +779,8 @@ export default function Home() {
                   assistantTriggerCountRef.current = 0;
                   wrongSinceLastPromptRef.current = 0;
                   lastShortPromptIndexRef.current = null;
-    
                   setMessages([{ sender: "bot", text: originalHelpPromptText }]);
                   setInput("");
-    
                   setStarted(true);
                   setExperimentStartTime(Date.now());
                 }}
@@ -729,6 +789,12 @@ export default function Home() {
                 READY!
               </button>
             )}
+            <button
+              onClick={() => setRulesView("choice")}
+              className="text-gray-500 hover:text-white text-sm transition"
+            >
+              ← Back
+            </button>
           </div>
         </div>
       </div>
