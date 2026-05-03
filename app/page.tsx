@@ -43,8 +43,8 @@ const commu = [
   {id:6, time: 14, hint:"You’ll handle this one just fine. It’s a simple one!"},
   {id:7, time: 13, hint:"I feel like you could try overlaying the first two shapes in each row and see what cancels out."},
   {id:8, time: 10, hint:"It might help to look at how the black area changes across each row~"},
-  {id:9, time: 12, hint:"I’m not totally sure, but you might look at each column—notice how the inner shape in the first and third match, while the outer shape in the second and third match."},
-  {id:10, time: 11, hint:"The last one! You got this!\nThis one’s similar in that you should look at each column—please try tracking the top and bottom parts separately."},];
+  {id:9, time: 12, hint:"I think for this one, you can look at each column—notice how the inner shape in the first and third match, while the outer shape in the second and third match."},
+  {id:10, time: 11, hint:"The last one! Please try tracking the top and bottom parts separately."},];
 
   
 
