@@ -20,7 +20,7 @@ const questions = [
 ];
 
 const originalHelpPromptText =
-  "Hi there! We’re on the same team!\nI'm here to help you if you get stuck.\n\nJust type the question number you're working on (e.g., '1'), and I'll narrow it down to two options for you.";
+  "Hi there! We’re on the same team!\n\nI'm here to help you if you get stuck.\n\nJust type the question number you're working on (e.g., '1'), and I'll narrow it down to two options for you.";
 
 const shortHelpPromptTexts = [
   "I can give you a hint!\nJust tell me the question number.",
@@ -40,7 +40,7 @@ const encouragementMessages = [
 
 const commu = [
   {id:1, time: 5, hint:"This one is relatively simple， you got this!"},
-  {id:2, time: 15, hint:"Hmm, this one’s tough. Maybe try tracking the outer shape and the inner pattern separately?"},
+  {id:2, time: 15, hint:"Hmm, this one’s tough. Maybe try tracking the outer shape and the inner pattern separately?\n\nYou can always ask me for help, too."},
   {id:3, time: 12, hint:"If I were you, I’d look at both the border and the center, and how they change across the row."},
   {id:5, time: 10, hint:"This one’s a bit easier. I think you can focus on how the black section moves and flips."},
   {id:6, time: 15, hint:"Try imagining the first two shapes combined?"},
