@@ -6,17 +6,13 @@ const questions = [
   { id: 1, correct: 1 },
   { id: 2, correct: 3 },
   { id: 3, correct: 4 },
-  { id: 4, correct: 5 },
+  { id: 4, correct: 3 },
   { id: 5, correct: 3 },
-  { id: 6, correct: 3 },
-  { id: 7, correct: 0 },
+  { id: 6, correct: 0 },
+  { id: 7, correct: 5 },
   { id: 8, correct: 5 },
-  { id: 9, correct: 5 },
-  { id: 10, correct: 4 },
-  { id: 11, correct: 2 },
-  { id: 12, correct: 5 },
-  { id: 13, correct: 3 },
-  { id: 14, correct: 1 },
+  { id: 9, correct: 4 },
+  { id: 10, correct: 2 },
 ];
 
 const originalHelpPromptText =
@@ -42,13 +38,13 @@ const commu = [
   {id:1, time: 5, hint:"This one is relatively simple， you got this!"},
   {id:2, time: 15, hint:"Hmm, this one’s tough. Maybe try tracking the outer shape and the inner pattern separately?\n\nYou can always ask me for help, too."},
   {id:3, time: 12, hint:"If I were you, I’d look at both the border and the center, and how they change across the row."},
-  {id:5, time: 10, hint:"This one’s a bit easier. I think you can focus on how the black section moves and flips."},
-  {id:6, time: 15, hint:"Try imagining the first two shapes combined?"},
-  {id:7, time: 7, hint:"You’ll handle this one just fine. It’s a simple one!"},
-  {id:8, time: 18, hint:"I feel like you could try overlaying the first two shapes in each row and see what cancels out."},
-  {id:9, time: 10, hint:"It might help to look at how the black area changes across each row~"},
-  {id:10, time: 15, hint:"I’m not totally sure, but you might look at each column—notice how the inner shape in the first and third match, while the outer shape in the second and third match."},
-  {id:11, time: 15, hint:"The last one! You got this!\nThis one’s similar in that you should look at each column—please try tracking the top and bottom parts separately."},];
+  {id:4, time: 10, hint:"This one’s a bit easier. I think you can focus on how the black section moves and flips."},
+  {id:5, time: 15, hint:"Try imagining the first two shapes combined?"},
+  {id:6, time: 7, hint:"You’ll handle this one just fine. It’s a simple one!"},
+  {id:7, time: 18, hint:"I feel like you could try overlaying the first two shapes in each row and see what cancels out."},
+  {id:8, time: 10, hint:"It might help to look at how the black area changes across each row~"},
+  {id:9, time: 15, hint:"I’m not totally sure, but you might look at each column—notice how the inner shape in the first and third match, while the outer shape in the second and third match."},
+  {id:10, time: 15, hint:"The last one! You got this!\nThis one’s similar in that you should look at each column—please try tracking the top and bottom parts separately."},];
 
   
 
