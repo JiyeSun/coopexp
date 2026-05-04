@@ -701,7 +701,7 @@ export default function Home() {
       <div className="h-screen bg-black flex items-center justify-center px-16 gap-16">
         {/* 左侧 2/5 — 文字 */}
         <div className="w-2/5 flex flex-col gap-10">
-          <h1 className="text-3xl font-bold tracking-[0.1em] text-white">INSTRUCTIONS</h1>
+          <h1 className="text-3xl font-bold tracking-wide text-white">INSTRUCTIONS</h1>
   
           <div className="flex flex-col gap-6">
             {[
