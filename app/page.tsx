@@ -19,10 +19,10 @@ const originalHelpPromptText =
   "Hi there! We’re on the same team!\n\nI'm here to help you if you get stuck.\n\nJust type the question number you're working on (e.g., '1'), and I'll narrow it down to two options for you.";
 
 const shortHelpPromptTexts = [
-  "That one was a bit tough—want a hint? Just tell me the question number.",
+  "That’s okay. That one was a bit tough.",
   "Hey, \nNo worries — we can get the next one together.",
   "That one was tricky. Let’s figure this one out together.",
-  "Any help?",
+  "I can help with this one. Just type the question number you’re working on.",
 ];
 
 const encouragementMessages = [
@@ -246,17 +246,22 @@ export default function Home() {
     updateCurrentTrial(null, true);
     commitCurrentTrial();
     wrongAnswerCountRef.current += 1;
-    wrongSinceLastPromptRef.current += 1;
+
+    const excludedFromPrompt = [1, 4, 6].includes(questions[current].id);
     
-    const neededWrongCount = assistantTriggerCountRef.current === 0 ? 1 : 2;
+    if (!excludedFromPrompt) {
+      wrongSinceLastPromptRef.current += 1;
     
-    if (
-      assistantTriggerCountRef.current < shortHelpPromptTexts.length &&
-      wrongSinceLastPromptRef.current >= neededWrongCount
-    ) {
-      pendingWrongPromptQuestionRef.current = current + 1;
-      assistantTriggerCountRef.current += 1;
-      wrongSinceLastPromptRef.current = 0;
+      const neededWrongCount = assistantTriggerCountRef.current === 0 ? 1 : 2;
+    
+      if (
+        assistantTriggerCountRef.current < shortHelpPromptTexts.length &&
+        wrongSinceLastPromptRef.current >= neededWrongCount
+      ) {
+        pendingWrongPromptQuestionRef.current = current + 1;
+        assistantTriggerCountRef.current += 1;
+        wrongSinceLastPromptRef.current = 0;
+      }
     }
     goNextQuestion(0);
 
