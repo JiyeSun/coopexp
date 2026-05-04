@@ -716,7 +716,7 @@ export default function Home() {
   
           {/* Title */}
           <div className="absolute top-8 left-0 right-0 flex justify-center z-10 pointer-events-none">
-            <p className="text-xl font-bold tracking-[0.3em] text-white">INSTRUCTIONS</p>
+            <p className="text-lg font-bold tracking-wide text-white">INSTRUCTIONS</p>
           </div>
   
           {/* Left — Text */}
