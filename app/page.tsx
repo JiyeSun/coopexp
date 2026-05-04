@@ -786,14 +786,12 @@ export default function Home() {
   
           <div className="max-w-lg w-full flex flex-col gap-10 px-8">
             <h1 className="text-3xl font-bold tracking-[0.3em] text-white text-center">RULES</h1>
-  
             <div className="flex flex-col gap-6">
               {[
-                { n: "01", text: "10 matrix reasoning problems. 90 seconds per question. Each correct answer is worth 1 point." },
-                { n: "02", text: "Upper-left: question number. Upper-right: countdown timer and score." },
-                { n: "03", text: "The ASSISTANT panel on the left is your teammate. Type a question number and it will narrow the answer down to two choices — one of which is correct." },
-                { n: "04", text: "After each answer: green ✓ means correct, red ✖ means incorrect." },
-                { n: "05", text: "Work with the assistant as a team. Solve as many as you can." },
+                { n: "01", text: "There will be 10 matrix reasoning problems. You will have 90 seconds for each question. Each correct answer is worth 1 point." },
+                { n: "02", text: "The upper left corner shows the question number. The upper right corner shows the countdown timer and your score. An ASSISTANT panel is on the left side of the screen. You are encouraged to use it if you need help with a question. It narrows the choices down to two options, one of which is correct." },
+                { n: "03", text: "Immediate feedback is provided after each selection: a green check mark indicates a correct answer, and a red cross indicates an incorrect one." },
+                { n: "04", text: "You and the assistant will work together as a team. Please solve as many problems as you can." },
               ].map(({ n, text }) => (
                 <div key={n} className="flex gap-5 items-start">
                   <span className="text-cyan-400 font-bold text-sm tracking-widest pt-0.5 w-6 shrink-0">{n}</span>
