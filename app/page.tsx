@@ -716,7 +716,7 @@ export default function Home() {
   
           {/* Title */}
           <div className="absolute top-8 left-0 right-0 flex justify-center z-10 pointer-events-none">
-            <p className="text-xs tracking-[0.5em] text-white/30">RULES</p>
+            <p className="text-xs tracking-[0.5em] text-white/30">INSTRUCTIONS</p>
           </div>
   
           {/* Left — Text */}
@@ -785,13 +785,14 @@ export default function Home() {
           {backButton}
   
           <div className="max-w-lg w-full flex flex-col gap-10 px-8">
-            <h1 className="text-3xl font-bold tracking-[0.3em] text-white text-center">RULES</h1>
+            <h1 className="text-3xl font-bold tracking-[0.3em] text-white text-center">INSTRUCTIONS</h1>
             <div className="flex flex-col gap-6">
               {[
                 { n: "01", text: "There will be 10 matrix reasoning problems. You will have 90 seconds for each question. Each correct answer is worth 1 point." },
-                { n: "02", text: "The upper left corner shows the question number. The upper right corner shows the countdown timer and your score. An ASSISTANT panel is on the left side of the screen. You are encouraged to use it if you need help with a question. It narrows the choices down to two options, one of which is correct." },
-                { n: "03", text: "Immediate feedback is provided after each selection: a green check mark indicates a correct answer, and a red cross indicates an incorrect one." },
-                { n: "04", text: "You and the assistant will work together as a team. Please solve as many problems as you can." },
+                { n: "02", text: "In the question area, the question number appears in the top-left corner, and the countdown timer and your score appear in the top-right corner."}, 
+                { n: "03", text: "An assistant panel is located on the left side of the screen. You can use it if you need help with a question. It can narrow the choices down to two options, one of which is correct." },
+                { n: "04", text: "Immediate feedback is provided after each selection: a green check mark indicates a correct answer, and a red cross indicates an incorrect one." },
+                { n: "05", text: "You and the assistant will work together as a team. Please solve as many problems as you can." },
               ].map(({ n, text }) => (
                 <div key={n} className="flex gap-5 items-start">
                   <span className="text-cyan-400 font-bold text-sm tracking-widest pt-0.5 w-6 shrink-0">{n}</span>
