@@ -133,6 +133,8 @@ export default function Home() {
   const lastShortPromptIndexRef = useRef<number | null>(null);
   const usedEncouragementsRef = useRef<string[]>([]);
   const [rulesView, setRulesView] = useState<"choice" | "text" | "video">("choice");
+  const [videoReady, setVideoReady] = useState(false);
+  const videoReadyTimerRef = useRef<TimerHandle>(null);
   
   function appendChatLog(
     role: "user" | "assistant",
@@ -593,6 +595,20 @@ export default function Home() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+  
+  useEffect(() => {
+    if (rulesView !== "video") {
+      setVideoReady(false);
+      clearTimer(videoReadyTimerRef);
+      return;
+    }
+    videoReadyTimerRef.current = setTimeout(() => setVideoReady(true), 47000);
+    return () => clearTimer(videoReadyTimerRef);
+  }, [rulesView]);
+
 
   useEffect(() => {
     if (!started || current >= questions.length) return;
@@ -671,131 +687,161 @@ export default function Home() {
   }
 
   if (!started) {
-    // 选择界面
+    const handleStart = () => {
+      pendingWrongPromptQuestionRef.current = null;
+      wrongAnswerCountRef.current = 0;
+      assistantTriggerCountRef.current = 0;
+      wrongSinceLastPromptRef.current = 0;
+      lastShortPromptIndexRef.current = null;
+      setMessages([{ sender: "bot", text: originalHelpPromptText }]);
+      appendChatLog("assistant", originalHelpPromptText);
+      setInput("");
+      setStarted(true);
+      setExperimentStartTime(Date.now());
+    };
+  
+    const backButton = (
+      <button
+        onClick={() => setRulesView("choice")}
+        className="absolute top-7 left-8 flex items-center gap-2 text-xs tracking-[0.2em] text-cyan-400/50 hover:text-cyan-400 border border-cyan-400/20 hover:border-cyan-400/60 px-4 py-2 rounded-xl transition-all duration-300"
+      >
+        ← BACK
+      </button>
+    );
+  
+    // ── Choice screen ──────────────────────────────────────────────
     if (rulesView === "choice") {
       return (
-        <div className="h-screen bg-black flex flex-col items-center justify-center gap-8">
-          <h1 className="text-4xl font-bold text-white tracking-wide">RULES</h1>
-          <p className="text-gray-400 text-lg">How would you like to view the rules?</p>
-          <div className="flex gap-8">
-            <button
-              onClick={() => setRulesView("text")}
-              className="px-10 py-5 border border-cyan-400 text-cyan-400 rounded-2xl text-lg hover:bg-cyan-400 hover:text-black transition"
-            >
-              Read Text
-            </button>
-            <button
-              onClick={() => setRulesView("video")}
-              className="px-10 py-5 border border-cyan-400 text-cyan-400 rounded-2xl text-lg hover:bg-cyan-400 hover:text-black transition"
-            >
-              Watch Video
-            </button>
-          </div>
-        </div>
-      );
-    }
+        <div className="h-screen bg-black flex overflow-hidden relative select-none">
   
-    // 文字界面
-    if (rulesView === "text") {
-      return (
-        <div className="h-screen bg-black flex flex-col items-center justify-center px-16">
-          <div className="w-full h-full bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] p-12 flex flex-col">
-            <div className="text-4xl font-bold mb-8 text-center">
-              <p>RULES</p>
-            </div>
-  
-            <div className="flex-1 space-y-4 text-lg text-white">
-              <p>
-                There will be 10 matrix reasoning problems. You will have 90 seconds for each question.
-                Each correct answer is worth 1 point.
-              </p>
-              <p>
-                The upper left corner shows the question number. The upper right corner shows the countdown
-                timer and your score. An <strong className="text-cyan-400">ASSISTANT</strong> panel is on the left side of the screen.
-                You are encouraged to use it if you need help with a question. It narrows the choices down to two options, one of which is correct.
-              </p>
-              <p>
-                Immediate feedback is provided after each selection: a green check mark indicates a correct answer, and a red cross indicates an incorrect one.
-              </p>
-              <p>You and the assistant will work together as a team. Please solve as many problems as you can.</p>
-            </div>
-  
-            <div className="flex flex-col items-center mt-auto pt-8 gap-4">
-              {!showStartButton && <p className="text-gray-500 animate-pulse">Preparing challenge...</p>}
-              {showStartButton && (
-                <button
-                  onClick={() => {
-                    pendingWrongPromptQuestionRef.current = null;
-                    wrongAnswerCountRef.current = 0;
-                    assistantTriggerCountRef.current = 0;
-                    wrongSinceLastPromptRef.current = 0;
-                    lastShortPromptIndexRef.current = null;
-                    setMessages([{ sender: "bot", text: originalHelpPromptText }]);
-                    setInput("");
-                    setStarted(true);
-                    setExperimentStartTime(Date.now());
-                  }}
-                  className="px-10 py-4 bg-black/80 backdrop-blur-md text-cyan-400 rounded-2xl border border-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.3)] tracking-widest text-lg hover:bg-cyan-400 hover:text-black transition-all duration-300"
-                >
-                  READY!
-                </button>
-              )}
-              <button
-                onClick={() => setRulesView("choice")}
-                className="text-gray-500 hover:text-white text-sm transition"
-              >
-                ← Back
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-  
-    // 视频界面
-    return (
-      <div className="h-screen bg-black flex flex-col items-center justify-center px-16">
-        <div className="w-full h-full bg-black/70 backdrop-blur-xl border border-cyan-400 text-white rounded-3xl shadow-[0_0_40px_rgba(0,255,255,0.2)] p-12 flex flex-col items-center">
-          <div className="text-4xl font-bold mb-8">
-            <p>RULES</p>
+          {/* Title */}
+          <div className="absolute top-8 left-0 right-0 flex justify-center z-10 pointer-events-none">
+            <p className="text-xs tracking-[0.5em] text-white/30">RULES</p>
           </div>
   
-          <div className="flex-1 flex items-center justify-center w-full">
+          {/* Left — Text */}
+          <div
+            onClick={() => setRulesView("text")}
+            className="w-1/2 h-full relative cursor-pointer group overflow-hidden"
+          >
+            {/* blurred text preview */}
+            <div className="absolute inset-0 flex flex-col justify-center px-14 py-20 gap-4 blur-md opacity-30 group-hover:opacity-50 group-hover:blur-sm transition-all duration-700 pointer-events-none">
+              {["01", "02", "03", "04", "05"].map((n, i) => (
+                <div key={n} className="flex gap-4 items-start">
+                  <span className="text-cyan-400 font-bold text-sm">{n}</span>
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    <div className="h-2 bg-white/60 rounded-full w-full" />
+                    {i % 2 === 0 && <div className="h-2 bg-white/40 rounded-full w-3/4" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+  
+            {/* overlay */}
+            <div className="absolute inset-0 bg-black/70 group-hover:bg-black/40 transition-all duration-500" />
+  
+            {/* label */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <span className="text-5xl font-bold tracking-[0.2em] text-white/80 group-hover:text-cyan-400 transition-colors duration-400">READ</span>
+              <span className="text-xs tracking-widest text-gray-500 group-hover:text-gray-300 transition-colors duration-400">Text Instructions</span>
+            </div>
+          </div>
+  
+          {/* Divider */}
+          <div className="w-px bg-gradient-to-b from-transparent via-cyan-400/40 to-transparent self-stretch" />
+  
+          {/* Right — Video */}
+          <div
+            onClick={() => setRulesView("video")}
+            className="w-1/2 h-full relative cursor-pointer group overflow-hidden"
+          >
+            {/* blurred video preview */}
             <video
               src="/videos/rules.mp4"
-              controls
-              className="max-h-full max-w-full rounded-2xl"
-              style={{ aspectRatio: "auto" }}
+              muted
+              playsInline
+              autoPlay
+              loop
+              className="absolute inset-0 w-full h-full object-cover blur-lg opacity-25 group-hover:opacity-45 group-hover:blur-md transition-all duration-700 pointer-events-none"
             />
-          </div>
   
-          <div className="flex flex-col items-center mt-auto pt-8 gap-4">
-            {!showStartButton && <p className="text-gray-500 animate-pulse">Preparing challenge...</p>}
-            {showStartButton && (
-              <button
-                onClick={() => {
-                  pendingWrongPromptQuestionRef.current = null;
-                  wrongAnswerCountRef.current = 0;
-                  assistantTriggerCountRef.current = 0;
-                  wrongSinceLastPromptRef.current = 0;
-                  lastShortPromptIndexRef.current = null;
-                  setMessages([{ sender: "bot", text: originalHelpPromptText }]);
-                  setInput("");
-                  setStarted(true);
-                  setExperimentStartTime(Date.now());
-                }}
-                className="px-10 py-4 bg-black/80 backdrop-blur-md text-cyan-400 rounded-2xl border border-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.3)] tracking-widest text-lg hover:bg-cyan-400 hover:text-black transition-all duration-300"
-              >
-                READY!
-              </button>
-            )}
-            <button
-              onClick={() => setRulesView("choice")}
-              className="text-gray-500 hover:text-white text-sm transition"
-            >
-              ← Back
-            </button>
+            {/* overlay */}
+            <div className="absolute inset-0 bg-black/70 group-hover:bg-black/40 transition-all duration-500" />
+  
+            {/* label */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <span className="text-5xl font-bold tracking-[0.2em] text-white/80 group-hover:text-cyan-400 transition-colors duration-400">WATCH</span>
+              <span className="text-xs tracking-widest text-gray-500 group-hover:text-gray-300 transition-colors duration-400">Video Walkthrough</span>
+            </div>
           </div>
+        </div>
+      );
+    }
+  
+    // ── Text view ──────────────────────────────────────────────────
+    if (rulesView === "text") {
+      return (
+        <div className="h-screen bg-black flex items-center justify-center relative">
+          {backButton}
+  
+          <div className="max-w-lg w-full flex flex-col gap-10 px-8">
+            <h1 className="text-3xl font-bold tracking-[0.3em] text-white text-center">RULES</h1>
+  
+            <div className="flex flex-col gap-6">
+              {[
+                { n: "01", text: "10 matrix reasoning problems. 90 seconds per question. Each correct answer is worth 1 point." },
+                { n: "02", text: "Upper-left: question number. Upper-right: countdown timer and score." },
+                { n: "03", text: "The ASSISTANT panel on the left is your teammate. Type a question number and it will narrow the answer down to two choices — one of which is correct." },
+                { n: "04", text: "After each answer: green ✓ means correct, red ✖ means incorrect." },
+                { n: "05", text: "Work with the assistant as a team. Solve as many as you can." },
+              ].map(({ n, text }) => (
+                <div key={n} className="flex gap-5 items-start">
+                  <span className="text-cyan-400 font-bold text-sm tracking-widest pt-0.5 w-6 shrink-0">{n}</span>
+                  <p className="text-gray-300 leading-relaxed text-sm">{text}</p>
+                </div>
+              ))}
+            </div>
+  
+            <div className="flex flex-col items-center gap-3">
+              {!showStartButton && <p className="text-gray-600 animate-pulse text-xs tracking-widest">PREPARING...</p>}
+              {showStartButton && (
+                <button
+                  onClick={handleStart}
+                  className="px-10 py-4 bg-black text-cyan-400 rounded-2xl border border-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.2)] tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
+                >
+                  READY
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+  
+    // ── Video view ─────────────────────────────────────────────────
+    return (
+      <div className="h-screen bg-black flex flex-col items-center justify-center gap-8 relative">
+        {backButton}
+  
+        <video
+          src="/videos/rules.mp4"
+          controls
+          style={{ maxHeight: "70vh", maxWidth: "85vw", width: "auto", height: "auto" }}
+          className="rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)]"
+        />
+  
+        <div className="flex flex-col items-center gap-3 h-14">
+          {!videoReady && (
+            <p className="text-gray-600 animate-pulse text-xs tracking-widest">WATCH THE VIDEO TO CONTINUE...</p>
+          )}
+          {videoReady && (
+            <button
+              onClick={handleStart}
+              className="px-10 py-4 bg-black text-cyan-400 rounded-2xl border border-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.2)] tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
+            >
+              READY
+            </button>
+          )}
         </div>
       </div>
     );
