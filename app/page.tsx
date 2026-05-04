@@ -107,6 +107,7 @@ export default function Home() {
   const answerTimeoutRef = useRef<TimerHandle>(null);
   const autoReturnTimerRef = useRef<TimerHandle>(null);
   const hintTimerRef = useRef<TimerHandle>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const answerLockRef = useRef(false);
   const advanceLockRef = useRef(false);
@@ -597,6 +598,14 @@ export default function Home() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    if (started || showCover) return;
+    const timer = setTimeout(() => {
+      videoRef.current?.play();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [started, showCover]);
+
 
   useEffect(() => {
     if (!started || current >= questions.length) return;
@@ -692,7 +701,7 @@ export default function Home() {
       <div className="h-screen bg-black flex items-center justify-center px-16 gap-16">
         {/* 左侧 2/5 — 文字 */}
         <div className="w-2/5 flex flex-col gap-10">
-          <h1 className="text-3xl font-bold tracking-[0.3em] text-white">INSTRUCTIONS</h1>
+          <h1 className="text-3xl font-bold tracking-[0.1em] text-white">INSTRUCTIONS</h1>
   
           <div className="flex flex-col gap-6">
             {[
@@ -725,6 +734,7 @@ export default function Home() {
         {/* 右侧 3/5 — 视频 */}
         <div className="w-3/5 flex items-center justify-center">
           <video
+            ref={videoRef}
             src="/videos/rules.mp4"
             controls
             style={{ maxHeight: "75vh", maxWidth: "100%", width: "auto", height: "auto" }}
