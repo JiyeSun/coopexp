@@ -677,7 +677,7 @@ export default function Home() {
 
               setTimeout(() => {
                 setShowStartButton(true);
-              }, 25000);
+              }, 50000);
             }}
             className="px-10 py-4 border border-cyan-400 text-cyan-400 rounded-2xl hover:bg-cyan-400 hover:text-black transition"
           >
