@@ -50,7 +50,7 @@ const commu = [
 
 const QUALTRICS_RETURN_URL = "https://iu.co1.qualtrics.com/jfe/form/SV_2tvhb3IQU4w77Om";
 const GOOGLE_APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbzeCOeL06qEoF8QOlnJ6w67x-t8TCJuWTGkS24bYtSG-XNcZjrIkvZOaLrYXOP9DsUr/exec";
+  "https://script.google.com/macros/s/AKfycbxnYYLd_oaNlZN2dKFv_ESqEudZ8Fhfa4nOGQxF8T72eeooLPbaZO8s39cB2uYZx0r7/exec";
 
 type Message = { sender: "user" | "bot"; text: string };
 
