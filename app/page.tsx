@@ -95,6 +95,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  
 
   const [rid] = useState<string>(() => {
     if (typeof window === "undefined") return "";
@@ -132,9 +133,6 @@ export default function Home() {
   const receivedHintRef = useRef(false);
   const lastShortPromptIndexRef = useRef<number | null>(null);
   const usedEncouragementsRef = useRef<string[]>([]);
-  const [rulesView, setRulesView] = useState<"choice" | "text" | "video">("choice");
-  const [videoReady, setVideoReady] = useState(false);
-  const videoReadyTimerRef = useRef<TimerHandle>(null);
   
   function appendChatLog(
     role: "user" | "assistant",
@@ -598,16 +596,6 @@ export default function Home() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-  
-  useEffect(() => {
-    if (rulesView !== "video") {
-      setVideoReady(false);
-      clearTimer(videoReadyTimerRef);
-      return;
-    }
-    videoReadyTimerRef.current = setTimeout(() => setVideoReady(true), 47000);
-    return () => clearTimer(videoReadyTimerRef);
-  }, [rulesView]);
 
 
   useEffect(() => {
@@ -700,152 +688,53 @@ export default function Home() {
       setExperimentStartTime(Date.now());
     };
   
-    const backButton = (
-      <button
-        onClick={() => setRulesView("choice")}
-        className="absolute top-7 left-8 flex items-center gap-2 text-xs tracking-[0.2em] text-cyan-400/50 hover:text-cyan-400 border border-cyan-400/20 hover:border-cyan-400/60 px-4 py-2 rounded-xl transition-all duration-300"
-      >
-        ← BACK
-      </button>
-    );
-  
-    // ── Choice screen ──────────────────────────────────────────────
-    if (rulesView === "choice") {
-      return (
-        <div className="h-screen bg-black flex overflow-hidden relative select-none">
-  
-          {/* Title */}
-          <div className="absolute top-8 left-0 right-0 flex justify-center z-10 pointer-events-none">
-            <p className="text-sm font-bold tracking-normal text-white/60">INSTRUCTIONS</p>
-          </div>
-  
-          {/* Left — Text */}
-          <div
-            onClick={() => setRulesView("text")}
-            className="w-1/2 h-full relative cursor-pointer group overflow-hidden"
-          >
-            {/* blurred text preview */}
-            <div className="absolute inset-0 flex flex-col justify-center px-14 py-20 gap-4 blur-md opacity-30 group-hover:opacity-50 group-hover:blur-sm transition-all duration-700 pointer-events-none">
-              {["01", "02", "03", "04", "05"].map((n, i) => (
-                <div key={n} className="flex gap-4 items-start">
-                  <span className="text-cyan-400 font-bold text-sm">{n}</span>
-                  <div className="flex flex-col gap-1.5 flex-1">
-                    <div className="h-2 bg-white/60 rounded-full w-full" />
-                    {i % 2 === 0 && <div className="h-2 bg-white/40 rounded-full w-3/4" />}
-                  </div>
-                </div>
-              ))}
-            </div>
-  
-            {/* overlay */}
-            <div className="absolute inset-0 bg-black/70 group-hover:bg-black/40 transition-all duration-500" />
-  
-            {/* label */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <span className="text-5xl font-bold tracking-wide text-white group-hover:text-cyan-400 transition-colors duration-400">Text</span>
-              <span className="text-lg tracking-widest text-white/60 group-hover:text-gray-300 transition-colors duration-400">Click to read the text instructions.</span>
-            </div>
-          </div>
-  
-          {/* Divider */}
-          <div className="w-px bg-gradient-to-b from-transparent via-cyan-400/40 to-transparent self-stretch" />
-  
-          {/* Right — Video */}
-          <div
-            onClick={() => setRulesView("video")}
-            className="w-1/2 h-full relative cursor-pointer group overflow-hidden"
-          >
-            {/* blurred video preview */}
-            <video
-              src="/videos/rules.mp4"
-              muted
-              playsInline
-              autoPlay
-              loop
-              className="absolute inset-0 w-full h-full object-cover blur-lg opacity-25 group-hover:opacity-45 group-hover:blur-md transition-all duration-700 pointer-events-none"
-            />
-  
-            {/* overlay */}
-            <div className="absolute inset-0 bg-black/70 group-hover:bg-black/40 transition-all duration-500" />
-  
-            {/* label */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <span className="text-5xl font-bold tracking-wide text-white group-hover:text-cyan-400 transition-colors duration-400">video</span>
-              <span className="text-lg tracking-widest text-white/60 group-hover:text-gray-300 transition-colors duration-400">Click to watch the video instructions.</span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-  
-    // ── Text view ──────────────────────────────────────────────────
-    if (rulesView === "text") {
-      return (
-        <div className="h-screen bg-black flex items-center justify-center relative">
-          {backButton}
-  
-          <div className="max-w-lg w-full flex flex-col gap-10 px-8">
-            <h1 className="text-3xl font-bold tracking-[0.3em] text-white text-center">INSTRUCTIONS</h1>
-            <div className="flex flex-col gap-6">
-              {[
-                { n: "01", text: "There will be 10 matrix reasoning problems. You will have 90 seconds for each question. Each correct answer is worth 1 point." },
-                { n: "02", text: "In the question area, the question number appears in the top-left corner, and the countdown timer and your score appear in the top-right corner."}, 
-                { n: "03", text: "An assistant panel is located on the left side of the screen. You can use it if you need help with a question. It can narrow the choices down to two options, one of which is correct." },
-                { n: "04", text: "Immediate feedback is provided after each selection: a green check mark indicates a correct answer, and a red cross indicates an incorrect one." },
-                { n: "05", text: "You and the assistant will work together as a team. Please solve as many problems as you can." },
-              ].map(({ n, text }) => (
-                <div key={n} className="flex gap-5 items-start">
-                  <span className="text-cyan-400 font-bold text-sm tracking-widest pt-0.5 w-6 shrink-0">{n}</span>
-                  <p className="text-gray-300 leading-relaxed text-sm">{text}</p>
-                </div>
-              ))}
-            </div>
-  
-            <div className="flex flex-col items-center gap-3">
-              {!showStartButton && <p className="text-gray-600 animate-pulse text-xs tracking-widest">PREPARING...</p>}
-              {showStartButton && (
-                <button
-                  onClick={handleStart}
-                  className="px-10 py-4 bg-black text-cyan-400 rounded-2xl border border-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.2)] tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
-                >
-                  READY
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      );
-    }
-  
-    // ── Video view ─────────────────────────────────────────────────
     return (
-      <div className="h-screen bg-black flex flex-col items-center justify-center gap-8 relative">
-        {backButton}
+      <div className="h-screen bg-black flex items-center justify-center px-16 gap-16">
+        {/* 左侧 2/5 — 文字 */}
+        <div className="w-2/5 flex flex-col gap-10">
+          <h1 className="text-3xl font-bold tracking-[0.3em] text-white">INSTRUCTIONS</h1>
   
-        <video
-          src="/videos/rules.mp4"
-          controls
-          style={{ maxHeight: "70vh", maxWidth: "85vw", width: "auto", height: "auto" }}
-          className="rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)]"
-        />
+          <div className="flex flex-col gap-6">
+            {[
+              { n: "01", text: "There will be 10 matrix reasoning problems. You will have 90 seconds for each question. Each correct answer is worth 1 point." },
+              { n: "02", text: "In the question area, the question number appears in the top-left corner, and the countdown timer and your score appear in the top-right corner." },
+              { n: "03", text: "An assistant panel is located on the left side of the screen. You can use it if you need help with a question. It can narrow the choices down to two options, one of which is correct." },
+              { n: "04", text: "Immediate feedback is provided after each selection: a green check mark indicates a correct answer, and a red cross indicates an incorrect one." },
+              { n: "05", text: "You and the assistant will work together as a team. Please solve as many problems as you can." },
+            ].map(({ n, text }) => (
+              <div key={n} className="flex gap-5 items-start">
+                <span className="text-cyan-400 font-bold text-sm tracking-widest pt-0.5 w-6 shrink-0">{n}</span>
+                <p className="text-gray-300 leading-relaxed text-sm">{text}</p>
+              </div>
+            ))}
+          </div>
   
-        <div className="flex flex-col items-center gap-3 h-14">
-          {!videoReady && (
-            <p className="text-gray-600 animate-pulse text-xs tracking-widest">WATCH THE VIDEO TO CONTINUE...</p>
-          )}
-          {videoReady && (
-            <button
-              onClick={handleStart}
-              className="px-10 py-4 bg-black text-cyan-400 rounded-2xl border border-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.2)] tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
-            >
-              READY
-            </button>
-          )}
+          <div className="flex flex-col items-start gap-3">
+            {!showStartButton && <p className="text-gray-600 animate-pulse text-xs tracking-widest">PREPARING...</p>}
+            {showStartButton && (
+              <button
+                onClick={handleStart}
+                className="px-10 py-4 bg-black text-cyan-400 rounded-2xl border border-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.2)] tracking-widest text-sm hover:bg-cyan-400 hover:text-black transition-all duration-300"
+              >
+                READY
+              </button>
+            )}
+          </div>
+        </div>
+  
+        {/* 右侧 3/5 — 视频 */}
+        <div className="w-3/5 flex items-center justify-center">
+          <video
+            src="/videos/rules.mp4"
+            controls
+            style={{ maxHeight: "75vh", maxWidth: "100%", width: "auto", height: "auto" }}
+            className="rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.6)]"
+          />
         </div>
       </div>
     );
   }
-
+  
   if (current >= questions.length) {
     const minutes = Math.floor(totalTime / 60);
     const seconds = totalTime % 60;
