@@ -716,7 +716,7 @@ export default function Home() {
   
           {/* Title */}
           <div className="absolute top-8 left-0 right-0 flex justify-center z-10 pointer-events-none">
-            <p className="text-base font-bold tracking-normal text-white/70">INSTRUCTIONS</p>
+            <p className="text-xs font-bold tracking-normal text-white/60">INSTRUCTIONS</p>
           </div>
   
           {/* Left — Text */}
@@ -742,7 +742,7 @@ export default function Home() {
   
             {/* label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <span className="text-5xl font-bold tracking-wide text-white/80 group-hover:text-cyan-400 transition-colors duration-400">Text</span>
+              <span className="text-5xl font-bold tracking-wide text-white group-hover:text-cyan-400 transition-colors duration-400">Text</span>
               <span className="text-lg tracking-widest text-white/60 group-hover:text-gray-300 transition-colors duration-400">Click to read the text instructions.</span>
             </div>
           </div>
@@ -770,7 +770,7 @@ export default function Home() {
   
             {/* label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <span className="text-5xl font-bold tracking-wide text-white/80 group-hover:text-cyan-400 transition-colors duration-400">video</span>
+              <span className="text-5xl font-bold tracking-wide text-white group-hover:text-cyan-400 transition-colors duration-400">video</span>
               <span className="text-lg tracking-widest text-white/60 group-hover:text-gray-300 transition-colors duration-400">Click to watch the video instructions.</span>
             </div>
           </div>
