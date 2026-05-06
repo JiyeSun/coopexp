@@ -668,7 +668,7 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-center">
-          <h1 className="text-4xl font-bold mb-8">Pattern Reasoning Challenge</h1>
+          <h1 className="text-4xl font-bold mb-8">Pattern Reasoning Task</h1>
 
           <button
             onClick={() => {
