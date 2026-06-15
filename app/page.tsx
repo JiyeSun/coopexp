@@ -290,7 +290,7 @@ export default function Home() {
         const available = encouragementMessages.filter(
           (msg) => !usedEncouragementsRef.current.includes(msg)
         );
-        const shouldEncourage = encouragementCountRef.current < 2 || Math.random() < 0.4;
+        const shouldEncourage = encouragementCountRef.current < 2 || Math.random() < 0.5;
 
         if (available.length > 0 && shouldEncourage) {
           const encouragement = available[Math.floor(Math.random() * available.length)];
