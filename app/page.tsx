@@ -319,7 +319,7 @@ export default function Home() {
     }
     
 
-    goNextQuestion(1500);
+    goNextQuestion(1000);
 
     answerLockRef.current = false;
   }
