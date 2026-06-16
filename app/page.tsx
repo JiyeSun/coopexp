@@ -587,7 +587,7 @@ export default function Home() {
         chatlog_json: JSON.stringify(chatlogRef.current),
       });
 
-      window.location.href = `${QUALTRICS_RETURN_URL}?rid=${rid}&PROLIFIC_PID=${prolificPid}&STUDY_ID=${studyId}&SESSION_ID=${sessionId}`;
+      window.location.href = `${QUALTRICS_RETURN_URL}?PROLIFIC_PID=${prolificPid}&STUDY_ID=${studyId}&SESSION_ID=${sessionId}`;
     } catch (error) {
       console.error(error);
       alert("Saving data failed. Please try again.");
